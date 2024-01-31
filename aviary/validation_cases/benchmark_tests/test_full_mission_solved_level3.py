@@ -9,11 +9,8 @@ from packaging import version
 from aviary.api import Mission
 from aviary.interface.default_phase_info.solved import phase_info
 from aviary.interface.methods_for_level2 import AviaryProblem
-from aviary.variable_info.enums import EquationsOfMotion
 
 
-@unittest.skipIf(version.parse(dymos.__version__) <= version.parse("1.8.0"),
-                 "Older version of Dymos treats non-time integration variables differently.")
 @use_tempdirs
 @require_pyoptsparse(optimizer="SNOPT")
 class ProblemPhaseTestCase(unittest.TestCase):
@@ -26,8 +23,7 @@ class ProblemPhaseTestCase(unittest.TestCase):
         prob.load_inputs(input_file, local_phase_info)
         prob.aviary_inputs.set_val(Mission.Design.RANGE, 2000.0, units="NM")
 
-
-# Preprocess inputs
+        # Preprocess inputs
         prob.check_and_preprocess_inputs()
 
         prob.add_pre_mission_systems()
