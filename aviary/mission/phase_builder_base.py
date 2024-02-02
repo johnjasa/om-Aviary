@@ -162,10 +162,12 @@ class PhaseBuilderBase(ABC):
         if ode_class is None:
             ode_class = self.default_ode_class
 
-        transcription = self.transcription
-
         if transcription is None and not self.is_analytic_phase:
             transcription = self.make_default_transcription()
+        elif transcription is None or transcription is "radau":
+            transcription = self.make_default_transcription()
+        elif transcription is "birkhoff":
+            transcription = self.make_birkhoff_transcription()
 
         if aviary_options is None:
             aviary_options = AviaryValues()
@@ -210,6 +212,20 @@ class PhaseBuilderBase(ABC):
 
         transcription = dm.Radau(
             num_segments=num_segments, order=order, compressed=True)
+
+        return transcription
+
+    def make_birkhoff_transcription(self):
+        '''
+        Return a transcription object to be used by default in build_phase.
+        '''
+        user_options = self.user_options
+
+        num_segments, _ = user_options.get_item('num_segments')
+        order, _ = user_options.get_item('order')
+
+        transcription = dm.Birkhoff(grid=dm.BirkhoffGrid(
+            num_segments=num_segments, nodes_per_seg=order+1, grid_type='lgl'))
 
         return transcription
 

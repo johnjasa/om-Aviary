@@ -644,6 +644,7 @@ class AviaryProblem(om.Problem):
     def _get_height_energy_phase(self, phase_name, phase_idx):
         base_phase_options = self.phase_info[phase_name]
         fix_duration = base_phase_options['user_options']['fix_duration']
+        transcription = base_phase_options['user_options'].get('transcription', 'radau')
 
         # We need to exclude some things from the phase_options that we pass down
         # to the phases. Intead of "popping" keys, we just create new outer dictionaries.
@@ -673,7 +674,7 @@ class AviaryProblem(om.Problem):
                 phase_builder = EnergyPhase
 
             phase_object = phase_builder.from_phase_info(
-                phase_name, phase_options, default_mission_subsystems, meta_data=self.meta_data)
+                phase_name, phase_options, default_mission_subsystems, meta_data=self.meta_data, transcription=transcription)
 
             phase = phase_object.build_phase(aviary_options=self.aviary_inputs)
 
@@ -1162,6 +1163,14 @@ class AviaryProblem(om.Problem):
                                "fuel_burn.mass_final", src_indices=[-1])
 
             self._add_fuel_reserve_component()
+
+            # check if last phase is birkhoff transcription
+            if self.phase_info[phases[-1]]['user_options']['transcription'][0] == 'birkhoff':
+                self.model.connect(f'traj.{phases[-1]}.boundary_vals.mass',
+                                   "fuel_burn.mass_final", src_indices=[-1])
+            else:
+                self.model.connect(f"traj.{phases[-1]}.states:mass",
+                                   "fuel_burn.mass_final", src_indices=[-1])
 
             # TODO: need to add some sort of check that this value is less than the fuel capacity
             # TODO: the overall_fuel variable is the burned fuel plus the reserve, but should
@@ -2341,10 +2350,17 @@ class AviaryProblem(om.Problem):
         else:
             control_type_string = 'control_values'
 
-        self.model.connect(f'traj.{last_flight_phase_name}.states:mass',
-                           Mission.Landing.TOUCHDOWN_MASS, src_indices=[-1])
-        self.model.connect(f'traj.{last_flight_phase_name}.{control_type_string}:altitude', Mission.Landing.INITIAL_ALTITUDE,
-                           src_indices=[0])
+        # check if the descent phase is birkhoff transcription
+        if self.phase_info[last_flight_phase_name]['transcription'][0] == 'birkhoff':
+            self.model.connect(f'traj.{last_flight_phase_name}.boundary_vals.mass',
+                               Mission.Landing.TOUCHDOWN_MASS, src_indices=[-1])
+            self.model.connect(f'traj.{last_flight_phase_name}.boundary_vals.altitude', Mission.Landing.INITIAL_ALTITUDE,
+                               src_indices=[-1])
+        else:
+            self.model.connect(f'traj.{last_flight_phase_name}.states:mass',
+                               Mission.Landing.TOUCHDOWN_MASS, src_indices=[-1])
+            self.model.connect(f'traj.{last_flight_phase_name}.{control_type_string}:altitude', Mission.Landing.INITIAL_ALTITUDE,
+                               src_indices=[0])
 
     def _add_post_mission_takeoff_systems(self):
         first_flight_phase_name = list(self.phase_info.keys())[0]
