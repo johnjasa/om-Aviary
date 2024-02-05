@@ -214,6 +214,15 @@ class AircraftMissionTestSuite(unittest.TestCase):
             run_aviary(self.aircraft_definition_file,
                        local_phase_info, max_iter=1, optimizer='SLSQP')
 
+    def test_birkhoff_transcription(self):
+        local_phase_info = self.phase_info.copy()
+        local_phase_info['climb']['user_options']['transcription'] = 'birkhoff'
+        local_phase_info['cruise']['user_options']['transcription'] = 'birkhoff'
+        local_phase_info['descent']['user_options']['transcription'] = 'birkhoff'
+
+        run_aviary(self.aircraft_definition_file,
+                   local_phase_info, max_iter=1, optimizer='SLSQP')
+
 
 if __name__ == '__main__':
     unittest.main()

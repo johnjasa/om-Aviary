@@ -162,6 +162,8 @@ class PhaseBuilderBase(ABC):
         if ode_class is None:
             ode_class = self.default_ode_class
 
+        transcription = self.transcription
+
         if transcription is None and not self.is_analytic_phase:
             transcription = self.make_default_transcription()
         elif transcription is None or transcription is "radau":

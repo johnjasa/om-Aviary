@@ -418,7 +418,7 @@ EnergyPhase._add_meta_data('altitude_bounds', val=(0., 60.e3), units='ft')
 
 EnergyPhase._add_meta_data('solve_for_distance', val=False)
 
-Cruise._add_meta_data('transcription', val=None)
+EnergyPhase._add_meta_data('transcription', val=None)
 
 EnergyPhase._add_initial_guess_meta_data(
     InitialGuessTime(),

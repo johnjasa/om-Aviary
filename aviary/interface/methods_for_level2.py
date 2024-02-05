@@ -1159,17 +1159,15 @@ class AviaryProblem(om.Problem):
 
             self.model.connect(f"traj.{phases[0]}.timeseries.mass",
                                "fuel_burn.initial_mass", src_indices=[0])
-            self.model.connect(f"traj.{phases[-1]}.states:mass",
-                               "fuel_burn.mass_final", src_indices=[-1])
 
             self._add_fuel_reserve_component()
 
             # check if last phase is birkhoff transcription
-            if self.phase_info[phases[-1]]['user_options']['transcription'][0] == 'birkhoff':
+            if self.phase_info[phases[-1]]['user_options']['transcription'] == 'birkhoff':
                 self.model.connect(f'traj.{phases[-1]}.boundary_vals.mass',
                                    "fuel_burn.mass_final", src_indices=[-1])
             else:
-                self.model.connect(f"traj.{phases[-1]}.states:mass",
+                self.model.connect(f"traj.{phases[-1]}.timeseries.mass",
                                    "fuel_burn.mass_final", src_indices=[-1])
 
             # TODO: need to add some sort of check that this value is less than the fuel capacity
@@ -2351,7 +2349,7 @@ class AviaryProblem(om.Problem):
             control_type_string = 'control_values'
 
         # check if the descent phase is birkhoff transcription
-        if self.phase_info[last_flight_phase_name]['transcription'][0] == 'birkhoff':
+        if self.phase_info[last_flight_phase_name]['transcription'] == 'birkhoff':
             self.model.connect(f'traj.{last_flight_phase_name}.boundary_vals.mass',
                                Mission.Landing.TOUCHDOWN_MASS, src_indices=[-1])
             self.model.connect(f'traj.{last_flight_phase_name}.boundary_vals.altitude', Mission.Landing.INITIAL_ALTITUDE,
