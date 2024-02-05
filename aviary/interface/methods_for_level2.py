@@ -1163,7 +1163,9 @@ class AviaryProblem(om.Problem):
             self._add_fuel_reserve_component()
 
             # check if last phase is birkhoff transcription
-            if self.phase_info[phases[-1]]['user_options']['transcription'] == 'birkhoff':
+            transcription_type = self.phase_info[phases[-1]
+                                                 ]['user_options'].get('transcription', 'radau')
+            if transcription_type == 'birkhoff':
                 self.model.connect(f'traj.{phases[-1]}.boundary_vals.mass',
                                    "fuel_burn.mass_final", src_indices=[-1])
             else:
@@ -2349,7 +2351,9 @@ class AviaryProblem(om.Problem):
             control_type_string = 'control_values'
 
         # check if the descent phase is birkhoff transcription
-        if self.phase_info[last_flight_phase_name]['transcription'] == 'birkhoff':
+        transcription_type = self.phase_info[last_flight_phase_name]['user_options'].get(
+            'transcription', 'radau')
+        if transcription_type == 'birkhoff':
             self.model.connect(f'traj.{last_flight_phase_name}.boundary_vals.mass',
                                Mission.Landing.TOUCHDOWN_MASS, src_indices=[-1])
             self.model.connect(f'traj.{last_flight_phase_name}.boundary_vals.altitude', Mission.Landing.INITIAL_ALTITUDE,
