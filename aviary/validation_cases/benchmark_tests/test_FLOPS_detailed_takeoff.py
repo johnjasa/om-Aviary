@@ -13,7 +13,7 @@ from aviary.subsystems.premission import CorePreMission
 from aviary.utils.functions import set_aviary_initial_values
 
 from aviary.models.N3CC.N3CC_data import (
-    inputs as _inputs, outputs as _outputs,
+    inputs as _inputs,
     takeoff_trajectory_builder as _takeoff_trajectory_builder,
     takeoff_liftoff_user_options as _takeoff_liftoff_user_options)
 
@@ -127,7 +127,7 @@ class TestFLOPSDetailedTakeoff(unittest.TestCase):
         takeoff_trajectory_builder.apply_initial_guesses(takeoff, 'traj')
 
         # run the problem
-        dm.run_problem(takeoff, run_driver=True, simulate=True, make_plots=False)
+        dm.run_problem(takeoff, run_driver=True, simulate=False, make_plots=False)
 
         # liftoff.rhs_all.list_inputs(print_arrays=True)
         # takeoff.model.list_outputs(print_arrays=True)

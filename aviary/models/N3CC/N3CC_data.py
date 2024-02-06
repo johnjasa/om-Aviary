@@ -12,8 +12,8 @@ from aviary.mission.flops_based.phases.detailed_landing_phases import (
     LandingNoseDownToStop, LandingObstacleToFlare, LandingTouchdownToNoseDown,
     LandingTrajectory)
 from aviary.mission.flops_based.phases.detailed_takeoff_phases import (
-    TakeoffBrakeReleaseToDecisionSpeed, TakeoffBrakeToAbort,
-    TakeoffDecisionSpeedBrakeDelay, TakeoffDecisionSpeedToRotate,
+    TakeoffPhase, TakeoffBrakeToAbort,
+    TakeoffDecisionSpeedBrakeDelay,
     TakeoffEngineCutback, TakeoffEngineCutbackToMicP1,
     TakeoffLiftoffToObstacle, TakeoffMicP1ToClimb, TakeoffMicP2ToEngineCutback,
     TakeoffObstacleToMicP2, TakeoffRotateToLiftoff, TakeoffTrajectory)
@@ -498,7 +498,7 @@ takeoff_brake_release_initial_guesses.set_val('mass', gross_mass, gross_mass_uni
 takeoff_brake_release_initial_guesses.set_val('throttle', 1.)
 takeoff_brake_release_initial_guesses.set_val('angle_of_attack', 0., 'deg')
 
-takeoff_brake_release_builder = TakeoffBrakeReleaseToDecisionSpeed(
+takeoff_brake_release_builder = TakeoffPhase(
     'takeoff_brake_release',
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,
@@ -527,7 +527,7 @@ takeoff_decision_speed_initial_guesses.set_val('mass', gross_mass, gross_mass_un
 takeoff_decision_speed_initial_guesses.set_val('throttle', 1.)
 takeoff_decision_speed_initial_guesses.set_val('angle_of_attack', 0., 'deg')
 
-takeoff_decision_speed_builder = TakeoffDecisionSpeedToRotate(
+takeoff_decision_speed_builder = TakeoffPhase(
     'takeoff_decision_speed',
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,
@@ -953,7 +953,7 @@ balanced_brake_release_initial_guesses.set_val('mass', gross_mass, gross_mass_un
 balanced_brake_release_initial_guesses.set_val('throttle', 1.)
 balanced_brake_release_initial_guesses.set_val('angle_of_attack', 0., 'deg')
 
-balanced_brake_release_builder = TakeoffBrakeReleaseToDecisionSpeed(
+balanced_brake_release_builder = TakeoffPhase(
     'balanced_brake_release',
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,
@@ -983,7 +983,7 @@ balanced_decision_speed_initial_guesses.set_val('mass', gross_mass, gross_mass_u
 balanced_decision_speed_initial_guesses.set_val('throttle', engine_out_throttle)
 balanced_decision_speed_initial_guesses.set_val('angle_of_attack', 0., 'deg')
 
-balanced_decision_speed_builder = TakeoffDecisionSpeedToRotate(
+balanced_decision_speed_builder = TakeoffPhase(
     'balanced_decision_speed',
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,

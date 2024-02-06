@@ -1120,8 +1120,6 @@ class LandingTrajectory:
     Identify, collect, and call the necessary phase builders to create a typical landing
     trajectory.
     '''
-    MappedPhase = _TakeoffTrajectory.MappedPhase
-
     default_name = 'detailed_landing'
 
     def __init__(self, name=None):
@@ -1157,9 +1155,7 @@ class LandingTrajectory:
         KeyError
             if the specified base name is not found
         '''
-        mapped_phase: self.MappedPhase = self._phases[key]
-
-        return mapped_phase.phase
+        return self._phases[key].phase
 
     def set_approach_to_mic_p3(self, phase_builder: PhaseBuilderBase):
         '''
@@ -1330,4 +1326,4 @@ class LandingTrajectory:
 
         self._traj.add_phase(name, phase)
 
-        self._phases[name] = self.MappedPhase(phase, phase_builder)
+        self._phases[name] = phase_builder
