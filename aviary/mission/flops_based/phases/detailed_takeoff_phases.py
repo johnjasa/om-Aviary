@@ -45,7 +45,7 @@ import openmdao.api as om
 
 from aviary.mission.flops_based.ode.takeoff_ode import TakeoffODE
 from aviary.mission.phase_builder_base import PhaseBuilderBase
-from aviary.mission.initial_guess_builders import InitialGuessControl, InitialGuessParameter, InitialGuessPolynomialControl, InitialGuessState, InitialGuessTime
+from aviary.mission.initial_guess_builders import InitialGuessControl, InitialGuessParameter, InitialGuessState, InitialGuessTime
 from aviary.utils.aviary_values import AviaryValues
 from aviary.variable_info.functions import setup_trajectory_params
 from aviary.variable_info.variables import Dynamic, Mission
@@ -101,7 +101,7 @@ class TakeoffPhase(PhaseBuilderBase):
         max_duration, units = user_options.get_item('max_duration')
         duration_ref = user_options.get_val('duration_ref', units)
 
-        if phase_type == '2':
+        if phase_type == '2a' or phase_type == '2b' or phase_type == '3' or phase_type == '4':
             fix_initial = False
             initial_ref = user_options.get_val('initial_ref', units)
             phase.set_time_options(
@@ -114,6 +114,8 @@ class TakeoffPhase(PhaseBuilderBase):
             phase.set_time_options(
                 fix_initial=fix_initial, duration_bounds=(1, max_duration),
                 duration_ref=duration_ref, units=units)
+        if phase_type == '2b':
+            phase.set_time_options(fix_duration=True)
 
         distance_max, units = user_options.get_item('distance_max')
 
@@ -143,9 +145,21 @@ class TakeoffPhase(PhaseBuilderBase):
             opt=False
         )
 
-        phase.add_parameter('angle_of_attack', val=0.0, opt=False, units='deg')
+        print()
+        print(self.name)
+        print(f'phase_type: {phase_type}')
+        print(f'fix_initial: {fix_initial}')
 
-        if phase_type == '2':
+        if phase_type == '3':
+            max_angle_of_attack, units = user_options.get_item('max_angle_of_attack')
+            phase.add_polynomial_control(
+                'angle_of_attack', opt=True, units=units, order=1,
+                lower=0, upper=max_angle_of_attack,
+                ref=max_angle_of_attack)
+        else:
+            phase.add_parameter('angle_of_attack', val=0.0, opt=False, units='deg')
+
+        if phase_type == '2a' or phase_type == '2b' or phase_type == '3':
             phase.add_boundary_constraint(
                 'v_over_v_stall', loc='final', lower=1.2, ref=1.2)
             phase.add_timeseries_output(
@@ -191,151 +205,9 @@ TakeoffPhase._add_meta_data('distance_max', val=1000.0, units='ft')
 TakeoffPhase._add_meta_data(
     'max_velocity', val=100.0, units='ft/s')
 
-TakeoffPhase._add_initial_guess_meta_data(
-    InitialGuessParameter('angle_of_attack'))
+TakeoffPhase._add_initial_guess_meta_data(InitialGuessParameter('angle_of_attack'))
 
-
-@_init_initial_guess_meta_data
-class TakeoffDecisionSpeedBrakeDelay(TakeoffPhase):
-    __slots__ = ()
-
-    # region : derived type customization points
-    _meta_data_ = {}
-
-    default_name = 'takeoff_brake_delay'
-
-    default_ode_class = TakeoffODE
-    # endregion : derived type customization points
-
-    def build_phase(self, aviary_options=None, phase_type=None):
-
-        phase: dm.Phase = super().build_phase(aviary_options)
-        phase.set_time_options(fix_duration=True)
-        return phase
-
-
-TakeoffDecisionSpeedBrakeDelay._add_meta_data('max_duration', val=1000.0, units='s')
-
-TakeoffDecisionSpeedBrakeDelay._add_meta_data('duration_ref', val=1.0, units='s')
-
-TakeoffDecisionSpeedBrakeDelay._add_meta_data('initial_ref', val=10.0, units='s')
-
-TakeoffDecisionSpeedBrakeDelay._add_meta_data('distance_max', val=1000.0, units='ft')
-
-TakeoffDecisionSpeedBrakeDelay._add_meta_data('max_velocity', val=100.0, units='ft/s')
-
-TakeoffDecisionSpeedBrakeDelay._add_initial_guess_meta_data(
-    InitialGuessParameter('angle_of_attack'))
-
-
-@_init_initial_guess_meta_data
-class TakeoffRotateToLiftoff(PhaseBuilderBase):
-    __slots__ = ()
-
-    # region : derived type customization points
-    _meta_data_ = {}
-
-    default_name = 'takeoff_rotate'
-
-    default_ode_class = TakeoffODE
-    # endregion : derived type customization points
-
-    def build_phase(self, aviary_options=None, phase_type=None):
-
-        phase: dm.Phase = super().build_phase(aviary_options)
-
-        user_options: AviaryValues = self.user_options
-
-        max_duration, units = user_options.get_item('max_duration')
-        duration_ref = user_options.get_val('duration_ref', units)
-        initial_ref = user_options.get_val('initial_ref', units)
-
-        phase.set_time_options(
-            fix_initial=False, duration_bounds=(1, max_duration),
-            initial_bounds=(1, initial_ref),
-            duration_ref=duration_ref, initial_ref=initial_ref,
-            units=units)
-
-        distance_max, units = user_options.get_item('distance_max')
-
-        phase.add_state(
-            Dynamic.Mission.DISTANCE, fix_initial=False, lower=0, ref=distance_max,
-            defect_ref=distance_max, units=units, upper=distance_max,
-            rate_source=Dynamic.Mission.DISTANCE_RATE)
-
-        max_velocity, units = user_options.get_item('max_velocity')
-
-        phase.add_state(
-            Dynamic.Mission.VELOCITY, fix_initial=False, lower=0, ref=max_velocity,
-            defect_ref=max_velocity, units=units, upper=max_velocity,
-            rate_source=Dynamic.Mission.VELOCITY_RATE)
-
-        max_angle_of_attack, units = user_options.get_item('max_angle_of_attack')
-
-        phase.add_state(
-            Dynamic.Mission.MASS, fix_initial=False, fix_final=False,
-            lower=0.0, upper=1e9, ref=5e4, defect_ref=5e4, units='kg',
-            rate_source=Dynamic.Mission.FUEL_FLOW_RATE_NEGATIVE_TOTAL,
-            targets=Dynamic.Mission.MASS,
-        )
-
-        phase.add_control(
-            Dynamic.Mission.THROTTLE,
-            targets=Dynamic.Mission.THROTTLE, units='unitless',
-            opt=False
-        )
-
-        phase.add_polynomial_control(
-            'angle_of_attack', opt=True, units=units, order=1,
-            lower=0, upper=max_angle_of_attack,
-            ref=max_angle_of_attack)
-
-        phase.add_timeseries_output(
-            Dynamic.Mission.DRAG, output_name=Dynamic.Mission.DRAG, units='lbf'
-        )
-
-        phase.add_timeseries_output(
-            Dynamic.Mission.THRUST_TOTAL,
-            output_name=Dynamic.Mission.THRUST_TOTAL, units='lbf'
-        )
-
-        phase.add_timeseries_output(
-            'v_over_v_stall', output_name='v_over_v_stall', units='unitless'
-        )
-
-        return phase
-
-    def make_default_transcription(self):
-        '''
-        Return a transcription object to be used by default in build_phase.
-        '''
-        transcription = dm.Radau(num_segments=3, order=3, compressed=True)
-
-        return transcription
-
-    def _extra_ode_init_kwargs(self):
-        """
-        Return extra kwargs required for initializing the ODE.
-        """
-        return {
-            'climbing': False,
-            'friction_key': Mission.Takeoff.ROLLING_FRICTION_COEFFICIENT}
-
-
-TakeoffRotateToLiftoff._add_meta_data('max_duration', val=5.0, units='s')
-
-TakeoffRotateToLiftoff._add_meta_data('duration_ref', val=1.0, units='s')
-
-TakeoffRotateToLiftoff._add_meta_data('initial_ref', val=10.0, units='s')
-
-TakeoffRotateToLiftoff._add_meta_data('distance_max', val=1000.0, units='ft')
-
-TakeoffRotateToLiftoff._add_meta_data('max_velocity', val=100.0, units='ft/s')
-
-TakeoffRotateToLiftoff._add_meta_data('max_angle_of_attack', val=10.0, units='deg')
-
-TakeoffRotateToLiftoff._add_initial_guess_meta_data(
-    InitialGuessPolynomialControl('angle_of_attack'))
+TakeoffPhase._add_meta_data('max_angle_of_attack', val=10.0, units='deg')
 
 
 @_init_initial_guess_meta_data
@@ -1560,13 +1432,13 @@ class TakeoffTrajectory:
             self._brake_release_to_decision_speed, aviary_options)
 
         self._add_phase(
-            self._decision_speed_to_rotate, aviary_options, phase_type='2')
+            self._decision_speed_to_rotate, aviary_options, phase_type='2a')
 
         self._add_phase(
-            self._rotate_to_liftoff, aviary_options)
+            self._rotate_to_liftoff, aviary_options, phase_type='3')
 
         self._add_phase(
-            self._liftoff_to_obstacle, aviary_options)
+            self._liftoff_to_obstacle, aviary_options, phase_type='4')
 
         obstacle_to_mic_p2 = self._obstacle_to_mic_p2
 
@@ -1590,7 +1462,7 @@ class TakeoffTrajectory:
 
         if decision_speed_to_brake is not None:
             self._add_phase(
-                decision_speed_to_brake, aviary_options)
+                decision_speed_to_brake, aviary_options, phase_type='2b')
 
             self._add_phase(
                 self._brake_to_abort, aviary_options)

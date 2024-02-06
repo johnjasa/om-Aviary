@@ -13,10 +13,9 @@ from aviary.mission.flops_based.phases.detailed_landing_phases import (
     LandingTrajectory)
 from aviary.mission.flops_based.phases.detailed_takeoff_phases import (
     TakeoffPhase, TakeoffBrakeToAbort,
-    TakeoffDecisionSpeedBrakeDelay,
     TakeoffEngineCutback, TakeoffEngineCutbackToMicP1,
     TakeoffLiftoffToObstacle, TakeoffMicP1ToClimb, TakeoffMicP2ToEngineCutback,
-    TakeoffObstacleToMicP2, TakeoffRotateToLiftoff, TakeoffTrajectory)
+    TakeoffObstacleToMicP2, TakeoffTrajectory)
 from aviary.subsystems.propulsion.engine_deck import EngineDeck
 from aviary.utils.aviary_values import AviaryValues
 from aviary.utils.preprocessors import preprocess_propulsion
@@ -556,7 +555,7 @@ takeoff_rotate_initial_guesses.set_val('throttle', 1.)
 takeoff_rotate_initial_guesses.set_val('angle_of_attack', [0., 8.], 'deg')
 takeoff_rotate_initial_guesses.set_val('mass', gross_mass, gross_mass_units)
 
-takeoff_rotate_builder = TakeoffRotateToLiftoff(
+takeoff_rotate_builder = TakeoffPhase(
     'takeoff_rotate',
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,
@@ -1011,7 +1010,7 @@ balanced_rotate_initial_guesses.set_val('throttle', engine_out_throttle)
 balanced_rotate_initial_guesses.set_val('angle_of_attack', [0., 8.], 'deg')
 balanced_rotate_initial_guesses.set_val('mass', gross_mass, gross_mass_units)
 
-balanced_rotate_builder = TakeoffRotateToLiftoff(
+balanced_rotate_builder = TakeoffPhase(
     'balanced_rotate',
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,
@@ -1073,7 +1072,7 @@ balanced_delayed_brake_initial_guesses.set_val('throttle', engine_out_throttle)
 balanced_delayed_brake_initial_guesses.set_val('angle_of_attack', 0., 'deg')
 
 # NOTE: no special handling required; re-use existing phase builder type
-balanced_delayed_brake_builder = TakeoffDecisionSpeedBrakeDelay(
+balanced_delayed_brake_builder = TakeoffPhase(
     'balanced_delayed_brake',
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,

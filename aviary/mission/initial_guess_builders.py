@@ -57,7 +57,12 @@ class InitialGuess:
         ):
             val = phase.interp(self.key, val)
 
-        prob.set_val(complete_key, val, units)
+        # TODO: make a general fix for this
+        try:
+            prob.set_val(complete_key, val, units)
+        except KeyError:
+            complete_key = complete_key.replace('parameters', 'polynomial_controls')
+            prob.set_val(complete_key, val)
 
     def _get_complete_key(self, traj_name, phase_name):
         '''
