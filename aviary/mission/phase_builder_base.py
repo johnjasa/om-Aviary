@@ -164,12 +164,11 @@ class PhaseBuilderBase(ABC):
 
         transcription = self.transcription
 
-        if transcription is None and not self.is_analytic_phase:
-            transcription = self.make_default_transcription()
-        elif transcription is None or transcription is "radau":
-            transcription = self.make_default_transcription()
-        elif transcription is "birkhoff":
-            transcription = self.make_birkhoff_transcription()
+        if not self.is_analytic_phase:
+            if transcription is None or transcription == "radau":
+                transcription = self.make_default_transcription()
+            elif transcription == "birkhoff":
+                transcription = self.make_birkhoff_transcription()
 
         if aviary_options is None:
             aviary_options = AviaryValues()
