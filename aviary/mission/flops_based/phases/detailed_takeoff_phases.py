@@ -82,7 +82,7 @@ def _init_initial_guess_meta_data(cls: PhaseBuilderBase):
 
 @_init_initial_guess_meta_data
 class TakeoffPhase(PhaseBuilderBase):
-    __slots__ = ()
+    __slots__ = ('phase_type')
 
     # region : derived type customization points
     _meta_data_ = {}
@@ -92,7 +92,19 @@ class TakeoffPhase(PhaseBuilderBase):
     default_ode_class = TakeoffODE
     # endregion : derived type customization points
 
-    def build_phase(self, aviary_options=None, phase_type=None):
+    def __init__(
+        self, name=None, subsystem_options=None, user_options=None, initial_guesses=None,
+        ode_class=None, transcription=None, core_subsystems=None, phase_type=None,
+    ):
+        super().__init__(
+            name=name, subsystem_options=subsystem_options, user_options=user_options,
+            initial_guesses=initial_guesses, ode_class=ode_class, transcription=transcription,
+            core_subsystems=core_subsystems, is_analytic_phase=False,
+        )
+        self.phase_type = phase_type
+
+    def build_phase(self, aviary_options=None):
+        phase_type = self.phase_type
 
         phase: dm.Phase = super().build_phase(aviary_options)
 
@@ -131,6 +143,22 @@ class TakeoffPhase(PhaseBuilderBase):
             defect_ref=max_velocity, units=units, upper=max_velocity,
             rate_source=Dynamic.Mission.VELOCITY_RATE)
 
+        if phase_type == '4':
+            flight_path_angle_ref, units = user_options.get_item('flight_path_angle_ref')
+
+            phase.add_state(
+                Dynamic.Mission.FLIGHT_PATH_ANGLE, fix_initial=True, lower=0,
+                ref=flight_path_angle_ref, upper=flight_path_angle_ref,
+                defect_ref=flight_path_angle_ref, units=units,
+                rate_source=Dynamic.Mission.FLIGHT_PATH_ANGLE_RATE)
+
+            altitude_ref, units = user_options.get_item('altitude_ref')
+
+            phase.add_state(
+                Dynamic.Mission.ALTITUDE, fix_initial=True, lower=0, ref=altitude_ref,
+                defect_ref=altitude_ref, units=units, upper=altitude_ref,
+                rate_source=Dynamic.Mission.ALTITUDE_RATE)
+
         phase.add_state(
             Dynamic.Mission.MASS, fix_initial=fix_initial, fix_final=False,
             lower=0.0, upper=1e9, ref=5e4, units='kg',
@@ -156,6 +184,17 @@ class TakeoffPhase(PhaseBuilderBase):
                 'angle_of_attack', opt=True, units=units, order=1,
                 lower=0, upper=max_angle_of_attack,
                 ref=max_angle_of_attack)
+
+        elif phase_type == '4':
+            lower_angle_of_attack, units = user_options.get_item('lower_angle_of_attack')
+            upper_angle_of_attack = user_options.get_val('upper_angle_of_attack', units)
+            angle_of_attack_ref = user_options.get_val('angle_of_attack_ref', units)
+
+            phase.add_control(
+                'angle_of_attack', opt=True, units=units,
+                lower=lower_angle_of_attack, upper=upper_angle_of_attack,
+                ref=angle_of_attack_ref)
+
         else:
             phase.add_parameter('angle_of_attack', val=0.0, opt=False, units='deg')
 
@@ -165,6 +204,28 @@ class TakeoffPhase(PhaseBuilderBase):
             phase.add_timeseries_output(
                 'v_over_v_stall', output_name='v_over_v_stall', units='unitless'
             )
+
+        if phase_type == '4':
+            obstacle_height, units = aviary_options.get_item(
+                Mission.Takeoff.OBSTACLE_HEIGHT)
+
+            if obstacle_height is None:
+                raise TypeError(
+                    f'missing required aviary_option: {Mission.Takeoff.OBSTACLE_HEIGHT}')
+
+            airport_altitude = aviary_options.get_val(
+                Mission.Takeoff.AIRPORT_ALTITUDE, units)
+
+            h = obstacle_height + airport_altitude
+
+            phase.add_boundary_constraint(
+                Dynamic.Mission.ALTITUDE, loc='final', equals=h, ref=h, units=units, linear=True)
+
+            phase.add_path_constraint(
+                'v_over_v_stall', lower=1.25, ref=2.0)
+
+            phase.add_boundary_constraint('eoms.forces_vertical', loc='initial', equals=0,
+                                          ref=100000)
 
         phase.add_timeseries_output(
             Dynamic.Mission.THRUST_TOTAL,
@@ -181,7 +242,10 @@ class TakeoffPhase(PhaseBuilderBase):
         '''
         Return a transcription object to be used by default in build_phase.
         '''
-        transcription = dm.Radau(num_segments=3, order=3, compressed=True)
+        num_segments = 3
+        if self.phase_type == '4':
+            num_segments = 5
+        transcription = dm.Radau(num_segments=num_segments, order=3, compressed=True)
 
         return transcription
 
@@ -189,8 +253,13 @@ class TakeoffPhase(PhaseBuilderBase):
         """
         Return extra kwargs required for initializing the ODE.
         """
+        if self.phase_type == '4':
+            climbing = True
+        else:
+            climbing = False
+        print(f'climbing: {climbing}')
         return {
-            'climbing': False,
+            'climbing': climbing,
             'friction_key': Mission.Takeoff.ROLLING_FRICTION_COEFFICIENT}
 
 
@@ -209,165 +278,19 @@ TakeoffPhase._add_initial_guess_meta_data(InitialGuessParameter('angle_of_attack
 
 TakeoffPhase._add_meta_data('max_angle_of_attack', val=10.0, units='deg')
 
+TakeoffPhase._add_meta_data('altitude_ref', val=1., units='ft')
 
-@_init_initial_guess_meta_data
-class TakeoffLiftoffToObstacle(PhaseBuilderBase):
-    '''
-    Define a phase builder for the fourth phase of takeoff, from liftoff to clearing the
-    required obstacle.
-    '''
-    __slots__ = ()
+TakeoffPhase._add_meta_data('flight_path_angle_ref', val=5., units='deg')
 
-    # region : derived type customization points
-    _meta_data_ = {}
+TakeoffPhase._add_meta_data('lower_angle_of_attack', val=-10., units='deg')
 
-    default_name = 'takeoff_liftoff'
+TakeoffPhase._add_meta_data('upper_angle_of_attack', val=15., units='deg')
 
-    default_ode_class = TakeoffODE
-    # endregion : derived type customization points
+TakeoffPhase._add_meta_data('angle_of_attack_ref', val=10., units='deg')
 
-    def build_phase(self, aviary_options: AviaryValues = None, phase_type=None):
+TakeoffPhase._add_initial_guess_meta_data(InitialGuessState('altitude'))
 
-        phase: dm.Phase = super().build_phase(aviary_options)
-
-        user_options: AviaryValues = self.user_options
-
-        max_duration, units = user_options.get_item('max_duration')
-        duration_ref = user_options.get_val('duration_ref', units)
-        initial_ref = user_options.get_val('initial_ref', units)
-
-        phase.set_time_options(
-            fix_initial=False, duration_bounds=(1, max_duration),
-            initial_bounds=(1, initial_ref),
-            duration_ref=duration_ref, initial_ref=initial_ref,
-            units=units)
-
-        distance_max, units = user_options.get_item('distance_max')
-
-        phase.add_state(
-            Dynamic.Mission.DISTANCE, fix_initial=False, lower=0, ref=distance_max,
-            defect_ref=distance_max, units=units, upper=distance_max,
-            rate_source=Dynamic.Mission.DISTANCE_RATE)
-
-        altitude_ref, units = user_options.get_item('altitude_ref')
-
-        phase.add_state(
-            Dynamic.Mission.ALTITUDE, fix_initial=True, lower=0, ref=altitude_ref,
-            defect_ref=altitude_ref, units=units, upper=altitude_ref,
-            rate_source=Dynamic.Mission.ALTITUDE_RATE)
-
-        max_velocity, units = user_options.get_item('max_velocity')
-
-        phase.add_state(
-            Dynamic.Mission.VELOCITY, fix_initial=False, lower=0, ref=max_velocity,
-            defect_ref=max_velocity, units=units, upper=max_velocity,
-            rate_source=Dynamic.Mission.VELOCITY_RATE)
-
-        flight_path_angle_ref, units = user_options.get_item('flight_path_angle_ref')
-
-        phase.add_state(
-            Dynamic.Mission.FLIGHT_PATH_ANGLE, fix_initial=True, lower=0,
-            ref=flight_path_angle_ref, upper=flight_path_angle_ref,
-            defect_ref=flight_path_angle_ref, units=units,
-            rate_source=Dynamic.Mission.FLIGHT_PATH_ANGLE_RATE)
-
-        phase.add_state(
-            Dynamic.Mission.MASS, fix_initial=False, fix_final=False,
-            lower=0.0, upper=1e9, ref=5e4, defect_ref=5e4, units='kg',
-            rate_source=Dynamic.Mission.FUEL_FLOW_RATE_NEGATIVE_TOTAL,
-            targets=Dynamic.Mission.MASS,
-        )
-
-        phase.add_control(
-            Dynamic.Mission.THROTTLE,
-            targets=Dynamic.Mission.THROTTLE, units='unitless',
-            opt=False
-        )
-
-        lower_angle_of_attack, units = user_options.get_item('lower_angle_of_attack')
-        upper_angle_of_attack = user_options.get_val('upper_angle_of_attack', units)
-        angle_of_attack_ref = user_options.get_val('angle_of_attack_ref', units)
-
-        phase.add_control(
-            'angle_of_attack', opt=True, units=units,
-            lower=lower_angle_of_attack, upper=upper_angle_of_attack,
-            ref=angle_of_attack_ref)
-
-        phase.add_timeseries_output(
-            Dynamic.Mission.DRAG, output_name=Dynamic.Mission.DRAG, units='lbf'
-        )
-
-        phase.add_timeseries_output(
-            Dynamic.Mission.THRUST_TOTAL,
-            output_name=Dynamic.Mission.THRUST_TOTAL, units='lbf'
-        )
-
-        obstacle_height, units = aviary_options.get_item(
-            Mission.Takeoff.OBSTACLE_HEIGHT)
-
-        if obstacle_height is None:
-            raise TypeError(
-                f'missing required aviary_option: {Mission.Takeoff.OBSTACLE_HEIGHT}')
-
-        airport_altitude = aviary_options.get_val(
-            Mission.Takeoff.AIRPORT_ALTITUDE, units)
-
-        h = obstacle_height + airport_altitude
-
-        phase.add_boundary_constraint(
-            Dynamic.Mission.ALTITUDE, loc='final', equals=h, ref=h, units=units, linear=True)
-
-        phase.add_path_constraint(
-            'v_over_v_stall', lower=1.25, ref=2.0)
-
-        phase.add_boundary_constraint('eoms.forces_vertical', loc='initial', equals=0,
-                                      ref=100000)
-
-        return phase
-
-    def make_default_transcription(self):
-        '''
-        Return a transcription object to be used by default in build_phase.
-        '''
-        transcription = dm.Radau(num_segments=5, order=3, compressed=True)
-
-        return transcription
-
-    def _extra_ode_init_kwargs(self):
-        """
-        Return extra kwargs required for initializing the ODE.
-        """
-        return {
-            'climbing': True,
-            'friction_key': Mission.Takeoff.ROLLING_FRICTION_COEFFICIENT}
-
-
-TakeoffLiftoffToObstacle._add_meta_data('max_duration', val=100., units='s')
-
-TakeoffLiftoffToObstacle._add_meta_data('duration_ref', val=1., units='s')
-
-TakeoffLiftoffToObstacle._add_meta_data('initial_ref', val=10.0, units='s')
-
-TakeoffLiftoffToObstacle._add_meta_data('distance_max', val=1000., units='ft')
-
-TakeoffLiftoffToObstacle._add_meta_data('max_velocity', val=100., units='ft/s')
-
-TakeoffLiftoffToObstacle._add_meta_data('altitude_ref', val=1., units='ft')
-
-TakeoffLiftoffToObstacle._add_meta_data('flight_path_angle_ref', val=5., units='deg')
-
-TakeoffLiftoffToObstacle._add_meta_data('lower_angle_of_attack', val=-10., units='deg')
-
-TakeoffLiftoffToObstacle._add_meta_data('upper_angle_of_attack', val=15., units='deg')
-
-TakeoffLiftoffToObstacle._add_meta_data('angle_of_attack_ref', val=10., units='deg')
-
-TakeoffLiftoffToObstacle._add_initial_guess_meta_data(
-    InitialGuessControl('angle_of_attack'))
-
-TakeoffLiftoffToObstacle._add_initial_guess_meta_data(InitialGuessState('altitude'))
-
-TakeoffLiftoffToObstacle._add_initial_guess_meta_data(
+TakeoffPhase._add_initial_guess_meta_data(
     InitialGuessState(Dynamic.Mission.FLIGHT_PATH_ANGLE))
 
 
@@ -1432,13 +1355,13 @@ class TakeoffTrajectory:
             self._brake_release_to_decision_speed, aviary_options)
 
         self._add_phase(
-            self._decision_speed_to_rotate, aviary_options, phase_type='2a')
+            self._decision_speed_to_rotate, aviary_options)
 
         self._add_phase(
-            self._rotate_to_liftoff, aviary_options, phase_type='3')
+            self._rotate_to_liftoff, aviary_options)
 
         self._add_phase(
-            self._liftoff_to_obstacle, aviary_options, phase_type='4')
+            self._liftoff_to_obstacle, aviary_options)
 
         obstacle_to_mic_p2 = self._obstacle_to_mic_p2
 
@@ -1462,7 +1385,7 @@ class TakeoffTrajectory:
 
         if decision_speed_to_brake is not None:
             self._add_phase(
-                decision_speed_to_brake, aviary_options, phase_type='2b')
+                decision_speed_to_brake, aviary_options)
 
             self._add_phase(
                 self._brake_to_abort, aviary_options)
@@ -1532,9 +1455,9 @@ class TakeoffTrajectory:
                 phase_b=liftoff_name, var_b='distance', loc_b='final',
                 ref=self._balanced_field_ref)
 
-    def _add_phase(self, phase_builder: PhaseBuilderBase, aviary_options: AviaryValues, phase_type=None):
+    def _add_phase(self, phase_builder: PhaseBuilderBase, aviary_options: AviaryValues):
         name = phase_builder.name
-        phase = phase_builder.build_phase(aviary_options, phase_type=phase_type)
+        phase = phase_builder.build_phase(aviary_options)
 
         self._traj.add_phase(name, phase)
 

@@ -61,8 +61,12 @@ class InitialGuess:
         try:
             prob.set_val(complete_key, val, units)
         except KeyError:
-            complete_key = complete_key.replace('parameters', 'polynomial_controls')
-            prob.set_val(complete_key, val)
+            try:
+                complete_key = complete_key.replace('parameters', 'polynomial_controls')
+                prob.set_val(complete_key, val)
+            except KeyError:
+                complete_key = complete_key.replace('polynomial_controls', 'controls')
+                prob.set_val(complete_key, val)
 
     def _get_complete_key(self, traj_name, phase_name):
         '''

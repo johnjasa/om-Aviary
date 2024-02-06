@@ -14,7 +14,7 @@ from aviary.mission.flops_based.phases.detailed_landing_phases import (
 from aviary.mission.flops_based.phases.detailed_takeoff_phases import (
     TakeoffPhase, TakeoffBrakeToAbort,
     TakeoffEngineCutback, TakeoffEngineCutbackToMicP1,
-    TakeoffLiftoffToObstacle, TakeoffMicP1ToClimb, TakeoffMicP2ToEngineCutback,
+    TakeoffMicP1ToClimb, TakeoffMicP2ToEngineCutback,
     TakeoffObstacleToMicP2, TakeoffTrajectory)
 from aviary.subsystems.propulsion.engine_deck import EngineDeck
 from aviary.utils.aviary_values import AviaryValues
@@ -502,7 +502,9 @@ takeoff_brake_release_builder = TakeoffPhase(
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,
     user_options=takeoff_brake_release_user_options,
-    initial_guesses=takeoff_brake_release_initial_guesses,)
+    initial_guesses=takeoff_brake_release_initial_guesses,
+    phase_type='1',
+)
 
 takeoff_trajectory_builder.set_brake_release_to_decision_speed(
     takeoff_brake_release_builder)
@@ -531,7 +533,9 @@ takeoff_decision_speed_builder = TakeoffPhase(
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,
     user_options=takeoff_decision_speed_user_options,
-    initial_guesses=takeoff_decision_speed_initial_guesses)
+    initial_guesses=takeoff_decision_speed_initial_guesses,
+    phase_type='2a',
+)
 
 takeoff_trajectory_builder.set_decision_speed_to_rotate(takeoff_decision_speed_builder)
 # endregion - takeoff decision speed
@@ -560,7 +564,9 @@ takeoff_rotate_builder = TakeoffPhase(
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,
     user_options=takeoff_rotate_user_options,
-    initial_guesses=takeoff_rotate_initial_guesses)
+    initial_guesses=takeoff_rotate_initial_guesses,
+    phase_type='3',
+)
 
 takeoff_trajectory_builder.set_rotate_to_liftoff(takeoff_rotate_builder)
 # endregion - takeoff rotate
@@ -591,12 +597,14 @@ takeoff_liftoff_initial_guesses.set_val(
 takeoff_liftoff_initial_guesses.set_val('angle_of_attack', 8.117, 'deg')
 takeoff_liftoff_initial_guesses.set_val('mass', gross_mass, gross_mass_units)
 
-takeoff_liftoff_builder = TakeoffLiftoffToObstacle(
+takeoff_liftoff_builder = TakeoffPhase(
     'takeoff_liftoff',
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,
     user_options=takeoff_liftoff_user_options,
-    initial_guesses=takeoff_liftoff_initial_guesses)
+    initial_guesses=takeoff_liftoff_initial_guesses,
+    phase_type='4',
+)
 
 takeoff_trajectory_builder.set_liftoff_to_obstacle(takeoff_liftoff_builder)
 # endregion - takeoff liftoff
@@ -957,7 +965,9 @@ balanced_brake_release_builder = TakeoffPhase(
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,
     user_options=balanced_brake_release_user_options,
-    initial_guesses=balanced_brake_release_initial_guesses)
+    initial_guesses=balanced_brake_release_initial_guesses,
+    phase_type='1',
+)
 
 balanced_trajectory_builder.set_brake_release_to_decision_speed(
     balanced_brake_release_builder)
@@ -987,7 +997,9 @@ balanced_decision_speed_builder = TakeoffPhase(
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,
     user_options=balanced_decision_speed_user_options,
-    initial_guesses=balanced_decision_speed_initial_guesses)
+    initial_guesses=balanced_decision_speed_initial_guesses,
+    phase_type='2a',
+)
 
 balanced_trajectory_builder.set_decision_speed_to_rotate(
     balanced_decision_speed_builder)
@@ -1015,7 +1027,9 @@ balanced_rotate_builder = TakeoffPhase(
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,
     user_options=balanced_rotate_user_options,
-    initial_guesses=balanced_rotate_initial_guesses)
+    initial_guesses=balanced_rotate_initial_guesses,
+    phase_type='3',
+)
 
 balanced_trajectory_builder.set_rotate_to_liftoff(
     balanced_rotate_builder)
@@ -1045,12 +1059,14 @@ balanced_liftoff_initial_guesses.set_val(
 balanced_liftoff_initial_guesses.set_val('angle_of_attack', 8.117, 'deg')
 balanced_liftoff_initial_guesses.set_val('mass', gross_mass, gross_mass_units)
 
-balanced_liftoff_builder = TakeoffLiftoffToObstacle(
+balanced_liftoff_builder = TakeoffPhase(
     'balanced_liftoff',
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,
     user_options=balanced_liftoff_user_options,
-    initial_guesses=balanced_liftoff_initial_guesses)
+    initial_guesses=balanced_liftoff_initial_guesses,
+    phase_type='4',
+)
 
 balanced_trajectory_builder.set_liftoff_to_obstacle(
     balanced_liftoff_builder)
@@ -1077,7 +1093,8 @@ balanced_delayed_brake_builder = TakeoffPhase(
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,
     user_options=balanced_delayed_brake_user_options,
-    initial_guesses=balanced_delayed_brake_initial_guesses)
+    initial_guesses=balanced_delayed_brake_initial_guesses,
+    phase_type='2a',)
 
 balanced_trajectory_builder.set_decision_speed_to_brake(balanced_delayed_brake_builder)
 
