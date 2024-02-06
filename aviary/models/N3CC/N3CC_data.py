@@ -15,7 +15,7 @@ from aviary.mission.flops_based.phases.detailed_takeoff_phases import (
     TakeoffPhase, TakeoffBrakeToAbort,
     TakeoffEngineCutback, TakeoffEngineCutbackToMicP1,
     TakeoffMicP1ToClimb, TakeoffMicP2ToEngineCutback,
-    TakeoffObstacleToMicP2, TakeoffTrajectory)
+    TakeoffTrajectory)
 from aviary.subsystems.propulsion.engine_deck import EngineDeck
 from aviary.utils.aviary_values import AviaryValues
 from aviary.utils.preprocessors import preprocess_propulsion
@@ -642,12 +642,14 @@ takeoff_mic_p2_initial_guesses.set_val(
 takeoff_mic_p2_initial_guesses.set_val('angle_of_attack', 8.117, 'deg')
 takeoff_mic_p2_initial_guesses.set_val('mass', gross_mass, gross_mass_units)
 
-takeoff_mic_p2_builder = TakeoffObstacleToMicP2(
+takeoff_mic_p2_builder = TakeoffPhase(
     'takeoff_mic_p2',
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,
     user_options=takeoff_mic_p2_user_options,
-    initial_guesses=takeoff_mic_p2_initial_guesses)
+    initial_guesses=takeoff_mic_p2_initial_guesses,
+    phase_type='5',
+)
 
 takeoff_trajectory_builder.set_obstacle_to_mic_p2(takeoff_mic_p2_builder)
 # endregion - takeoff mic p2

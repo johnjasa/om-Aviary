@@ -113,7 +113,7 @@ class TakeoffPhase(PhaseBuilderBase):
         max_duration, units = user_options.get_item('max_duration')
         duration_ref = user_options.get_val('duration_ref', units)
 
-        if phase_type == '2a' or phase_type == '2b' or phase_type == '3' or phase_type == '4':
+        if not phase_type == '1':
             fix_initial = False
             initial_ref = user_options.get_val('initial_ref', units)
             phase.set_time_options(
@@ -143,11 +143,16 @@ class TakeoffPhase(PhaseBuilderBase):
             defect_ref=max_velocity, units=units, upper=max_velocity,
             rate_source=Dynamic.Mission.VELOCITY_RATE)
 
-        if phase_type == '4':
+        if phase_type == '4' or phase_type == '5':
             flight_path_angle_ref, units = user_options.get_item('flight_path_angle_ref')
 
+            if phase_type == '4':
+                fix_initial_fpa = True
+            else:
+                fix_initial_fpa = False
+
             phase.add_state(
-                Dynamic.Mission.FLIGHT_PATH_ANGLE, fix_initial=True, lower=0,
+                Dynamic.Mission.FLIGHT_PATH_ANGLE, fix_initial=fix_initial_fpa, lower=0,
                 ref=flight_path_angle_ref, upper=flight_path_angle_ref,
                 defect_ref=flight_path_angle_ref, units=units,
                 rate_source=Dynamic.Mission.FLIGHT_PATH_ANGLE_RATE)
@@ -185,7 +190,7 @@ class TakeoffPhase(PhaseBuilderBase):
                 lower=0, upper=max_angle_of_attack,
                 ref=max_angle_of_attack)
 
-        elif phase_type == '4':
+        elif phase_type == '4' or phase_type == '5':
             lower_angle_of_attack, units = user_options.get_item('lower_angle_of_attack')
             upper_angle_of_attack = user_options.get_val('upper_angle_of_attack', units)
             angle_of_attack_ref = user_options.get_val('angle_of_attack_ref', units)
@@ -227,6 +232,26 @@ class TakeoffPhase(PhaseBuilderBase):
             phase.add_boundary_constraint('eoms.forces_vertical', loc='initial', equals=0,
                                           ref=100000)
 
+        if phase_type == '5':
+
+            phase.add_timeseries_output(
+                Dynamic.Mission.THRUST_TOTAL,
+                output_name=Dynamic.Mission.THRUST_TOTAL, units='lbf'
+            )
+
+            final_altitude, units = user_options.get_item('mic_altitude')
+
+            airport_altitude = aviary_options.get_val(
+                Mission.Takeoff.AIRPORT_ALTITUDE, units)
+
+            h = final_altitude + airport_altitude
+
+            phase.add_boundary_constraint(
+                Dynamic.Mission.ALTITUDE, loc='final', equals=h, ref=h, units=units, linear=True)
+
+            phase.add_boundary_constraint(
+                'v_over_v_stall', loc='final', lower=1.25, ref=1.25)
+
         phase.add_timeseries_output(
             Dynamic.Mission.THRUST_TOTAL,
             output_name=Dynamic.Mission.THRUST_TOTAL, units='lbf'
@@ -245,6 +270,8 @@ class TakeoffPhase(PhaseBuilderBase):
         num_segments = 3
         if self.phase_type == '4':
             num_segments = 5
+        elif self.phase_type == '5':
+            num_segments = 7
         transcription = dm.Radau(num_segments=num_segments, order=3, compressed=True)
 
         return transcription
@@ -253,7 +280,7 @@ class TakeoffPhase(PhaseBuilderBase):
         """
         Return extra kwargs required for initializing the ODE.
         """
-        if self.phase_type == '4':
+        if self.phase_type == '4' or self.phase_type == '5':
             climbing = True
         else:
             climbing = False
@@ -293,158 +320,7 @@ TakeoffPhase._add_initial_guess_meta_data(InitialGuessState('altitude'))
 TakeoffPhase._add_initial_guess_meta_data(
     InitialGuessState(Dynamic.Mission.FLIGHT_PATH_ANGLE))
 
-
-@_init_initial_guess_meta_data
-class TakeoffObstacleToMicP2(PhaseBuilderBase):
-    __slots__ = ()
-
-    # region : derived type customization points
-    _meta_data_ = {}
-
-    default_name = 'takeoff_climb'
-
-    default_ode_class = TakeoffODE
-    # endregion : derived type customization points
-
-    def build_phase(self, aviary_options: AviaryValues = None, phase_type=None):
-
-        phase: dm.Phase = super().build_phase(aviary_options)
-
-        user_options: AviaryValues = self.user_options
-
-        max_duration, units = user_options.get_item('max_duration')
-        duration_ref = user_options.get_val('duration_ref', units)
-        initial_ref = user_options.get_val('initial_ref', units)
-
-        phase.set_time_options(
-            fix_initial=False, duration_bounds=(1, max_duration),
-            initial_bounds=(1, initial_ref),
-            duration_ref=duration_ref, initial_ref=initial_ref,
-            units=units)
-
-        distance_max, units = user_options.get_item('distance_max')
-
-        phase.add_state(
-            Dynamic.Mission.DISTANCE, fix_initial=False, lower=0, ref=distance_max,
-            defect_ref=distance_max, units=units, upper=distance_max,
-            rate_source=Dynamic.Mission.DISTANCE_RATE)
-
-        altitude_ref, units = user_options.get_item('altitude_ref')
-
-        phase.add_state(
-            Dynamic.Mission.ALTITUDE, fix_initial=False, lower=0, ref=altitude_ref,
-            defect_ref=altitude_ref, units=units,
-            rate_source=Dynamic.Mission.ALTITUDE_RATE)
-
-        max_velocity, units = user_options.get_item('max_velocity')
-
-        phase.add_state(
-            Dynamic.Mission.VELOCITY, fix_initial=False, lower=0, ref=max_velocity,
-            defect_ref=max_velocity, units=units, upper=max_velocity,
-            rate_source=Dynamic.Mission.VELOCITY_RATE)
-
-        flight_path_angle_ref, units = user_options.get_item('flight_path_angle_ref')
-
-        phase.add_state(
-            Dynamic.Mission.FLIGHT_PATH_ANGLE, fix_initial=False, lower=0,
-            ref=flight_path_angle_ref,
-            defect_ref=flight_path_angle_ref, units=units,
-            rate_source=Dynamic.Mission.FLIGHT_PATH_ANGLE_RATE)
-
-        phase.add_state(
-            Dynamic.Mission.MASS, fix_initial=False, fix_final=False,
-            lower=0.0, upper=1e9, ref=5e4, defect_ref=5e4, units='kg',
-            rate_source=Dynamic.Mission.FUEL_FLOW_RATE_NEGATIVE_TOTAL,
-            targets=Dynamic.Mission.MASS,
-        )
-
-        phase.add_control(
-            Dynamic.Mission.THROTTLE,
-            targets=Dynamic.Mission.THROTTLE, units='unitless',
-            opt=False
-        )
-
-        lower_angle_of_attack, units = user_options.get_item('lower_angle_of_attack')
-        upper_angle_of_attack = user_options.get_val('upper_angle_of_attack', units)
-        angle_of_attack_ref = user_options.get_val('angle_of_attack_ref', units)
-
-        phase.add_control(
-            'angle_of_attack', opt=True, units=units,
-            lower=lower_angle_of_attack, upper=upper_angle_of_attack,
-            ref=angle_of_attack_ref)
-
-        phase.add_timeseries_output(
-            Dynamic.Mission.DRAG, output_name=Dynamic.Mission.DRAG, units='lbf'
-        )
-
-        phase.add_timeseries_output(
-            Dynamic.Mission.THRUST_TOTAL,
-            output_name=Dynamic.Mission.THRUST_TOTAL, units='lbf'
-        )
-
-        final_altitude, units = user_options.get_item('mic_altitude')
-
-        airport_altitude = aviary_options.get_val(
-            Mission.Takeoff.AIRPORT_ALTITUDE, units)
-
-        h = final_altitude + airport_altitude
-
-        phase.add_boundary_constraint(
-            Dynamic.Mission.ALTITUDE, loc='final', equals=h, ref=h, units=units, linear=True)
-
-        phase.add_boundary_constraint(
-            'v_over_v_stall', loc='final', lower=1.25, ref=1.25)
-
-        return phase
-
-    def make_default_transcription(self):
-        '''
-        Return a transcription object to be used by default in build_phase.
-        '''
-        num_segments_climb = 7
-        transcription = dm.Radau(num_segments=num_segments_climb, order=3,
-                                 compressed=True)
-
-        return transcription
-
-    def _extra_ode_init_kwargs(self):
-        """
-        Return extra kwargs required for initializing the ODE.
-        """
-        return {
-            'climbing': True,
-            'friction_key': Mission.Takeoff.ROLLING_FRICTION_COEFFICIENT}
-
-
-TakeoffObstacleToMicP2._add_meta_data('max_duration', val=100., units='s')
-
-TakeoffObstacleToMicP2._add_meta_data('duration_ref', val=1., units='s')
-
-TakeoffObstacleToMicP2._add_meta_data('initial_ref', val=10.0, units='s')
-
-TakeoffObstacleToMicP2._add_meta_data('distance_max', val=1000., units='ft')
-
-TakeoffObstacleToMicP2._add_meta_data('max_velocity', val=100., units='ft/s')
-
-TakeoffObstacleToMicP2._add_meta_data('altitude_ref', val=1., units='ft')
-
-TakeoffObstacleToMicP2._add_meta_data('flight_path_angle_ref', val=5., units='deg')
-
-TakeoffObstacleToMicP2._add_meta_data('lower_angle_of_attack', val=-10., units='deg')
-
-TakeoffObstacleToMicP2._add_meta_data('upper_angle_of_attack', val=15., units='deg')
-
-TakeoffObstacleToMicP2._add_meta_data('angle_of_attack_ref', val=10., units='deg')
-
-TakeoffObstacleToMicP2._add_meta_data('mic_altitude', val=1.0, units='ft')
-
-TakeoffObstacleToMicP2._add_initial_guess_meta_data(
-    InitialGuessControl('angle_of_attack'))
-
-TakeoffObstacleToMicP2._add_initial_guess_meta_data(InitialGuessState('altitude'))
-
-TakeoffObstacleToMicP2._add_initial_guess_meta_data(
-    InitialGuessState(Dynamic.Mission.FLIGHT_PATH_ANGLE))
+TakeoffPhase._add_meta_data('mic_altitude', val=1.0, units='ft')
 
 
 @_init_initial_guess_meta_data
