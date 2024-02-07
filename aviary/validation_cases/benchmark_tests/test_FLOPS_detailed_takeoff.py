@@ -51,8 +51,8 @@ class TestFLOPSDetailedTakeoff(unittest.TestCase):
         driver.options['optimizer'] = optimizer
 
         driver.opt_settings['Major iterations limit'] = 50
-        driver.opt_settings['Major optimality tolerance'] = 1e-4
-        driver.opt_settings['Major feasibility tolerance'] = 1e-6
+        driver.opt_settings['Major optimality tolerance'] = 1e-6
+        driver.opt_settings['Major feasibility tolerance'] = 1e-8
         driver.opt_settings['iSumm'] = 6
 
         self._do_run(driver, optimizer)
@@ -127,7 +127,7 @@ class TestFLOPSDetailedTakeoff(unittest.TestCase):
         takeoff_trajectory_builder.apply_initial_guesses(takeoff, 'traj')
 
         # run the problem
-        dm.run_problem(takeoff, run_driver=True, simulate=False, make_plots=False)
+        dm.run_problem(takeoff, run_driver=True, simulate=False, make_plots=True)
 
         # liftoff.rhs_all.list_inputs(print_arrays=True)
         # takeoff.model.list_outputs(print_arrays=True)

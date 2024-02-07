@@ -18,14 +18,10 @@ class StallSpeed(om.ExplicitComponent):
     '''
 
     def initialize(self):
-        options = self.options
-
-        options.declare('num_nodes', default=1, types=int, lower=0)
+        self.options.declare('num_nodes', default=1, types=int, lower=0)
 
     def setup(self):
-        options = self.options
-
-        nn = options['num_nodes']
+        nn = self.options['num_nodes']
 
         self.add_input(
             'mass', val=np.ones(nn), units='kg', desc='current mass of the aircraft')
@@ -46,9 +42,7 @@ class StallSpeed(om.ExplicitComponent):
             desc='minimum speed of an aircraft required to produce lift')
 
     def setup_partials(self):
-        options = self.options
-
-        nn = options['num_nodes']
+        nn = self.options['num_nodes']
         rows_cols = np.arange(nn)
 
         self.declare_partials(
@@ -56,7 +50,7 @@ class StallSpeed(om.ExplicitComponent):
 
         self.declare_partials('stall_speed', ['area', 'lift_coefficient_max'])
 
-    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
+    def compute(self, inputs, outputs):
         mass = inputs['mass']
         density = inputs['density']
         area = inputs['area']
@@ -67,7 +61,7 @@ class StallSpeed(om.ExplicitComponent):
         stall_speed = (2. * weight / (density * area * lift_coefficient_max))**0.5
         outputs['stall_speed'] = stall_speed
 
-    def compute_partials(self, inputs, J, discrete_inputs=None):
+    def compute_partials(self, inputs, J):
         mass = inputs['mass']
         density = inputs['density']
         area = inputs['area']
@@ -167,11 +161,6 @@ class TakeoffEOM(om.Group):
             promotes_outputs=['*']
         )
 
-        self.add_subsystem(
-            'climb_gradient_forces',
-            ClimbGradientForces(num_nodes=nn, aviary_options=aviary_options),
-            promotes=['*'])
-
 
 class DistanceRates(om.ExplicitComponent):
     '''
@@ -222,7 +211,7 @@ class DistanceRates(om.ExplicitComponent):
 
             self.declare_partials(Dynamic.Mission.ALTITUDE_RATE, '*', dependent=False)
 
-    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
+    def compute(self, inputs, outputs):
         velocity = inputs[Dynamic.Mission.VELOCITY]
 
         if self.options['climbing']:
@@ -241,7 +230,7 @@ class DistanceRates(om.ExplicitComponent):
 
         outputs[Dynamic.Mission.DISTANCE_RATE] = range_rate
 
-    def compute_partials(self, inputs, J, discrete_inputs=None):
+    def compute_partials(self, inputs, J):
         if self.options['climbing']:
             flight_path_angle = inputs[Dynamic.Mission.FLIGHT_PATH_ANGLE]
             velocity = inputs[Dynamic.Mission.VELOCITY]
@@ -311,7 +300,7 @@ class Accelerations(om.ExplicitComponent):
         self.declare_partials(
             'acceleration_vertical', 'forces_vertical', rows=rows_cols, cols=rows_cols)
 
-    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
+    def compute(self, inputs, outputs):
         mass = inputs[Dynamic.Mission.MASS]
         f_h = inputs['forces_horizontal']
         f_v = inputs['forces_vertical']
@@ -322,7 +311,7 @@ class Accelerations(om.ExplicitComponent):
         a_v = f_v / mass
         outputs['acceleration_vertical'] = a_v
 
-    def compute_partials(self, inputs, J, discrete_inputs=None):
+    def compute_partials(self, inputs, J):
         mass = inputs[Dynamic.Mission.MASS]
         f_h = inputs['forces_horizontal']
         f_v = inputs['forces_vertical']
@@ -370,7 +359,7 @@ class VelocityRate(om.ExplicitComponent):
 
         self.declare_partials('*', '*', rows=rows_cols, cols=rows_cols)
 
-    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
+    def compute(self, inputs, outputs):
         a_h = inputs['acceleration_horizontal']
         a_v = inputs['acceleration_vertical']
         v_h = inputs[Dynamic.Mission.DISTANCE_RATE]
@@ -379,7 +368,7 @@ class VelocityRate(om.ExplicitComponent):
         v_mag = np.sqrt(v_h**2 + v_v**2)
         outputs[Dynamic.Mission.VELOCITY_RATE] = (a_h * v_h + a_v * v_v) / v_mag
 
-    def compute_partials(self, inputs, J, discrete_inputs=None):
+    def compute_partials(self, inputs, J):
         a_h = inputs['acceleration_horizontal']
         a_v = inputs['acceleration_vertical']
         v_h = inputs[Dynamic.Mission.DISTANCE_RATE]
@@ -436,7 +425,7 @@ class FlightPathAngleRate(om.ExplicitComponent):
 
         self.declare_partials('*', '*', rows=rows_cols, cols=rows_cols)
 
-    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
+    def compute(self, inputs, outputs):
         v_h = inputs[Dynamic.Mission.DISTANCE_RATE]
         v_v = inputs[Dynamic.Mission.ALTITUDE_RATE]
         a_h = inputs['acceleration_horizontal']
@@ -446,7 +435,7 @@ class FlightPathAngleRate(om.ExplicitComponent):
 
         outputs[Dynamic.Mission.FLIGHT_PATH_ANGLE_RATE] = x
 
-    def compute_partials(self, inputs, J, discrete_inputs=None):
+    def compute_partials(self, inputs, J):
         v_h = inputs[Dynamic.Mission.DISTANCE_RATE]
         v_v = inputs[Dynamic.Mission.ALTITUDE_RATE]
         a_h = inputs['acceleration_horizontal']
@@ -571,7 +560,7 @@ class SumForces(om.ExplicitComponent):
 
             self.declare_partials('forces_vertical', ['*'], dependent=False)
 
-    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
+    def compute(self, inputs, outputs):
         options = self.options
 
         climbing = options['climbing']
@@ -625,7 +614,7 @@ class SumForces(om.ExplicitComponent):
 
         outputs['forces_horizontal'] = f_h
 
-    def compute_partials(self, inputs, J, discrete_inputs=None):
+    def compute_partials(self, inputs, J):
         options = self.options
 
         climbing = options['climbing']
@@ -671,147 +660,3 @@ class SumForces(om.ExplicitComponent):
 
         J['forces_vertical', Dynamic.Mission.FLIGHT_PATH_ANGLE] = \
             thrust * c_angle - drag * c_gamma - lift * s_gamma
-
-
-class ClimbGradientForces(om.ExplicitComponent):
-    '''
-    Define a component for calculating residual forces for evaluation of climb gradient
-    criteria.
-    '''
-
-    def initialize(self):
-        options = self.options
-
-        options.declare('num_nodes', default=1, types=int, lower=0)
-
-        options.declare(
-            'aviary_options', types=AviaryValues,
-            desc='collection of Aircraft/Mission specific options')
-
-    def setup(self):
-        options = self.options
-
-        nn = options['num_nodes']
-
-        add_aviary_input(self, Dynamic.Mission.MASS, val=np.ones(nn), units='kg')
-        add_aviary_input(self, Dynamic.Mission.LIFT, val=np.ones(nn), units='N')
-        add_aviary_input(self, Dynamic.Mission.THRUST_TOTAL, val=np.ones(nn), units='N')
-        add_aviary_input(self, Dynamic.Mission.DRAG, val=np.ones(nn), units='N')
-
-        self.add_input('angle_of_attack', val=np.zeros(nn), units='rad')
-
-        add_aviary_input(self, Dynamic.Mission.FLIGHT_PATH_ANGLE,
-                         val=np.zeros(nn), units='rad')
-
-        self.add_output(
-            'climb_gradient_forces_horizontal', val=np.zeros(nn), units='N',
-            desc='current sum of forces in the horizontal direction; checking for excess'
-            ' thrust')
-
-        self.add_output(
-            'climb_gradient_forces_vertical', val=np.zeros(nn), units='N',
-            desc='current sum of forces in the vertical direction; checking for net zero'
-            ' vertical force')
-
-    def setup_partials(self):
-        options = self.options
-
-        nn = options['num_nodes']
-
-        rows_cols = np.arange(nn)
-
-        self.declare_partials(
-            '*',
-            [
-                Dynamic.Mission.MASS, Dynamic.Mission.THRUST_TOTAL, 'angle_of_attack',
-                Dynamic.Mission.FLIGHT_PATH_ANGLE],
-            rows=rows_cols, cols=rows_cols)
-
-        self.declare_partials(
-            'climb_gradient_forces_horizontal', Dynamic.Mission.DRAG, val=-1.,
-            rows=rows_cols, cols=rows_cols)
-
-        self.declare_partials(
-            'climb_gradient_forces_vertical', Dynamic.Mission.DRAG, dependent=False)
-
-        self.declare_partials(
-            'climb_gradient_forces_horizontal', Dynamic.Mission.LIFT, dependent=False)
-
-        self.declare_partials(
-            'climb_gradient_forces_vertical', Dynamic.Mission.LIFT, val=1.,
-            rows=rows_cols, cols=rows_cols)
-
-    def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        options = self.options
-
-        aviary_options: AviaryValues = options['aviary_options']
-
-        alpha0 = aviary_options.get_val(Mission.Takeoff.ANGLE_OF_ATTACK_RUNWAY, 'rad')
-        t_inc = aviary_options.get_val(Mission.Takeoff.THRUST_INCIDENCE, 'rad')
-
-        mass = inputs[Dynamic.Mission.MASS]
-        lift = inputs[Dynamic.Mission.LIFT]
-        thrust = inputs[Dynamic.Mission.THRUST_TOTAL]
-        drag = inputs[Dynamic.Mission.DRAG]
-
-        weight = mass * grav_metric
-
-        alpha = inputs['angle_of_attack']
-        gamma = inputs[Dynamic.Mission.FLIGHT_PATH_ANGLE]
-
-        angle = alpha - alpha0 + t_inc
-
-        c_angle = np.cos(angle)
-        s_angle = np.sin(angle)
-
-        c_gamma = np.cos(gamma)
-        s_gamma = np.sin(gamma)
-
-        # NOTE using FLOPS CLGRAD
-        #    - variables: FORCE2, FORCV
-        f_h = -drag - weight * s_gamma + thrust * c_angle
-        outputs['climb_gradient_forces_horizontal'] = f_h
-
-        f_v = lift - weight * c_gamma + thrust * s_angle
-        outputs['climb_gradient_forces_vertical'] = f_v
-
-    def compute_partials(self, inputs, J, discrete_inputs=None):
-        options = self.options
-
-        aviary_options: AviaryValues = options['aviary_options']
-
-        alpha0 = aviary_options.get_val(Mission.Takeoff.ANGLE_OF_ATTACK_RUNWAY, 'rad')
-        t_inc = aviary_options.get_val(Mission.Takeoff.THRUST_INCIDENCE, 'rad')
-
-        mass = inputs[Dynamic.Mission.MASS]
-        lift = inputs[Dynamic.Mission.LIFT]
-        thrust = inputs[Dynamic.Mission.THRUST_TOTAL]
-        drag = inputs[Dynamic.Mission.DRAG]
-
-        weight = mass * grav_metric
-
-        alpha = inputs['angle_of_attack']
-        gamma = inputs[Dynamic.Mission.FLIGHT_PATH_ANGLE]
-
-        angle = alpha - alpha0 + t_inc
-
-        c_angle = np.cos(angle)
-        s_angle = np.sin(angle)
-
-        c_gamma = np.cos(gamma)
-        s_gamma = np.sin(gamma)
-
-        f_h_key = 'climb_gradient_forces_horizontal'
-        f_v_key = 'climb_gradient_forces_vertical'
-
-        J[f_h_key, Dynamic.Mission.MASS] = -grav_metric * s_gamma
-        J[f_v_key, Dynamic.Mission.MASS] = -grav_metric * c_gamma
-
-        J[f_h_key, Dynamic.Mission.THRUST_TOTAL] = c_angle
-        J[f_v_key, Dynamic.Mission.THRUST_TOTAL] = s_angle
-
-        J[f_h_key, 'angle_of_attack'] = -thrust * s_angle
-        J[f_v_key, 'angle_of_attack'] = thrust * c_angle
-
-        J[f_h_key, Dynamic.Mission.FLIGHT_PATH_ANGLE] = -weight * c_gamma
-        J[f_v_key, Dynamic.Mission.FLIGHT_PATH_ANGLE] = weight * s_gamma

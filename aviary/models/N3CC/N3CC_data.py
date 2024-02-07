@@ -504,8 +504,7 @@ takeoff_brake_release_builder = TakeoffPhase(
     phase_type='1',
 )
 
-takeoff_trajectory_builder.set_brake_release_to_decision_speed(
-    takeoff_brake_release_builder)
+takeoff_trajectory_builder._brake_release_to_decision_speed = takeoff_brake_release_builder
 # endregion - takeoff brake release
 
 # region - takeoff decision speed
@@ -535,7 +534,7 @@ takeoff_decision_speed_builder = TakeoffPhase(
     phase_type='2a',
 )
 
-takeoff_trajectory_builder.set_decision_speed_to_rotate(takeoff_decision_speed_builder)
+takeoff_trajectory_builder._decision_speed_to_rotate = takeoff_decision_speed_builder
 # endregion - takeoff decision speed
 
 # region - takeoff rotate
@@ -566,7 +565,7 @@ takeoff_rotate_builder = TakeoffPhase(
     phase_type='3',
 )
 
-takeoff_trajectory_builder.set_rotate_to_liftoff(takeoff_rotate_builder)
+takeoff_trajectory_builder._rotate_to_liftoff = takeoff_rotate_builder
 # endregion - takeoff rotate
 
 # region - takeoff liftoff
@@ -604,7 +603,7 @@ takeoff_liftoff_builder = TakeoffPhase(
     phase_type='4',
 )
 
-takeoff_trajectory_builder.set_liftoff_to_obstacle(takeoff_liftoff_builder)
+takeoff_trajectory_builder._liftoff_to_obstacle = takeoff_liftoff_builder
 # endregion - takeoff liftoff
 
 # region - takeoff mic p2
@@ -649,7 +648,7 @@ takeoff_mic_p2_builder = TakeoffPhase(
     phase_type='5',
 )
 
-takeoff_trajectory_builder.set_obstacle_to_mic_p2(takeoff_mic_p2_builder)
+takeoff_trajectory_builder._obstacle_to_mic_p2 = takeoff_mic_p2_builder
 # endregion - takeoff mic p2
 
 # region - mic p2 to engine cutback
@@ -708,8 +707,7 @@ takeoff_mic_p2_to_engine_cutback_builder = TakeoffPhase(
     initial_guesses=takeoff_mic_p2_to_engine_cutback_initial_guesses,
     phase_type='6')
 
-takeoff_trajectory_builder.set_mic_p2_to_engine_cutback(
-    takeoff_mic_p2_to_engine_cutback_builder)
+takeoff_trajectory_builder._mic_p2_to_engine_cutback = takeoff_mic_p2_to_engine_cutback_builder
 # endregion - mic p2 to engine cutback
 
 # region - engine cutback phase
@@ -762,7 +760,7 @@ takeoff_engine_cutback_builder = TakeoffPhase(
     initial_guesses=takeoff_engine_cutback_initial_guesses,
     phase_type='7')
 
-takeoff_trajectory_builder.set_engine_cutback(takeoff_engine_cutback_builder)
+takeoff_trajectory_builder._engine_cutback = takeoff_engine_cutback_builder
 # endregion - engine cutback phase
 
 # region - engine cutback to mic p1
@@ -825,8 +823,7 @@ takeoff_engine_cutback_to_mic_p1_builder = TakeoffPhase(
     initial_guesses=takeoff_engine_cutback_to_mic_p1_initial_guesses,
     phase_type='8')
 
-takeoff_trajectory_builder.set_engine_cutback_to_mic_p1(
-    takeoff_engine_cutback_to_mic_p1_builder)
+takeoff_trajectory_builder._engine_cutback_to_mic_p1 = takeoff_engine_cutback_to_mic_p1_builder
 # endregion - engine cutback to mic p1
 
 # region - mic p1 to climb
@@ -871,7 +868,7 @@ takeoff_mic_p1_to_climb_builder = TakeoffPhase(
     initial_guesses=takeoff_mic_p1_to_climb_initial_guesses,
     phase_type='9')
 
-takeoff_trajectory_builder.set_mic_p1_to_climb(takeoff_mic_p1_to_climb_builder)
+takeoff_trajectory_builder._mic_p1_to_climb = takeoff_mic_p1_to_climb_builder
 # endregion - mic p1 to climb
 
 # NOTE copied/derived from N3CC FLOPS output
@@ -973,8 +970,7 @@ balanced_brake_release_builder = TakeoffPhase(
     phase_type='1',
 )
 
-balanced_trajectory_builder.set_brake_release_to_decision_speed(
-    balanced_brake_release_builder)
+balanced_trajectory_builder._brake_release_to_decision_speed = balanced_brake_release_builder
 
 balanced_decision_speed_user_options = AviaryValues()
 
@@ -1005,8 +1001,7 @@ balanced_decision_speed_builder = TakeoffPhase(
     phase_type='2a',
 )
 
-balanced_trajectory_builder.set_decision_speed_to_rotate(
-    balanced_decision_speed_builder)
+balanced_trajectory_builder._decision_speed_to_rotate = balanced_decision_speed_builder
 
 balanced_rotate_user_options = AviaryValues()
 
@@ -1035,8 +1030,7 @@ balanced_rotate_builder = TakeoffPhase(
     phase_type='3',
 )
 
-balanced_trajectory_builder.set_rotate_to_liftoff(
-    balanced_rotate_builder)
+balanced_trajectory_builder._rotate_to_liftoff = balanced_rotate_builder
 
 balanced_liftoff_user_options = AviaryValues()
 
@@ -1072,8 +1066,7 @@ balanced_liftoff_builder = TakeoffPhase(
     phase_type='4',
 )
 
-balanced_trajectory_builder.set_liftoff_to_obstacle(
-    balanced_liftoff_builder)
+balanced_trajectory_builder._liftoff_to_obstacle = balanced_liftoff_builder
 
 balanced_delayed_brake_user_options = AviaryValues()
 
@@ -1100,7 +1093,7 @@ balanced_delayed_brake_builder = TakeoffPhase(
     initial_guesses=balanced_delayed_brake_initial_guesses,
     phase_type='2a',)
 
-balanced_trajectory_builder.set_decision_speed_to_brake(balanced_delayed_brake_builder)
+balanced_trajectory_builder._decision_speed_to_brake = balanced_delayed_brake_builder
 
 balanced_abort_user_options = AviaryValues()
 
@@ -1130,8 +1123,8 @@ balanced_abort_builder = TakeoffPhase(
 
 distance_max = balanced_liftoff_user_options.get_val('distance_max', 'ft')
 
-balanced_trajectory_builder.set_brake_to_abort(
-    balanced_abort_builder, balanced_field_ref=distance_max)
+balanced_trajectory_builder._brake_to_abort = balanced_abort_builder
+balanced_trajectory_builder._balanced_field_ref = distance_max
 # endregion balanced field length
 
 # region - detailed landing

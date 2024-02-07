@@ -183,11 +183,11 @@ class TakeoffPhase(PhaseBuilderBase):
         # TODO: Energy phase places this under an if num_engines > 0.
         phase.add_control(
             Dynamic.Mission.THROTTLE,
-            targets=Dynamic.Mission.THROTTLE, units='unitless',
+            units='unitless',
             opt=False
         )
 
-        if phase_type == '3':
+        if phase_type in ['3']:
             max_angle_of_attack, units = user_options.get_item('max_angle_of_attack')
             phase.add_polynomial_control(
                 'angle_of_attack', opt=True, units=units, order=1,
@@ -290,10 +290,8 @@ class TakeoffPhase(PhaseBuilderBase):
         Return a transcription object to be used by default in build_phase.
         '''
         num_segments = 3
-        if self.phase_type == '4':
+        if self.phase_type in ['5', '6', '9']:
             num_segments = 5
-        elif self.phase_type in ['5', '6', '7', '8', '9']:
-            num_segments = 7
         transcription = dm.Radau(num_segments=num_segments, order=3, compressed=True)
 
         return transcription
@@ -312,7 +310,6 @@ class TakeoffPhase(PhaseBuilderBase):
         else:
             friction_key = Mission.Takeoff.ROLLING_FRICTION_COEFFICIENT
 
-        print(f'climbing: {climbing}')
         return {
             'climbing': climbing,
             'friction_key': friction_key}
@@ -403,106 +400,6 @@ class TakeoffTrajectory:
             if the specified base name is not found
         '''
         return self._phases[key][0]
-
-    def set_brake_release_to_decision_speed(self, phase_builder: PhaseBuilderBase):
-        '''
-        Assign a phase builder for the beginning of takeoff to the time when the pilot
-        must choose either to liftoff or halt the aircraft.
-        '''
-        self._brake_release_to_decision_speed = phase_builder
-
-    def set_decision_speed_to_rotate(self, phase_builder: PhaseBuilderBase):
-        '''
-        Assign a phase builder for the short distance between achieving decision speed
-        and beginning the rotation phase.
-        '''
-        self._decision_speed_to_rotate = phase_builder
-
-    def set_rotate_to_liftoff(self, phase_builder: PhaseBuilderBase):
-        '''
-        Assign a phase builder for the short distance required to rotate the aircraft
-        to achieve liftoff.
-        '''
-        self._rotate_to_liftoff = phase_builder
-
-    def set_liftoff_to_obstacle(self, phase_builder: PhaseBuilderBase):
-        '''
-        Assign a phase builder for the short period between liftoff and clearing the
-        required obstacle.
-        '''
-        self._liftoff_to_obstacle = phase_builder
-
-    def set_obstacle_to_mic_p2(self, phase_builder: PhaseBuilderBase):
-        '''
-        Assign a phase builder for the fifth phase of takeoff, from clearing the required
-        obstacle to the p2 mic loation. This phase is required for acoustic calculations.
-        '''
-        self._obstacle_to_mic_p2 = phase_builder
-
-    def set_mic_p2_to_engine_cutback(self, phase_builder: PhaseBuilderBase):
-        '''
-        Assign a phase builder for the sixth phase of takeoff, from the p2 mic location
-        to engine cutback. This phase is required for acoustic calculations.
-        '''
-        self._mic_p2_to_engine_cutback = phase_builder
-
-    def set_engine_cutback(self, phase_builder: PhaseBuilderBase):
-        '''
-        Assign a phase builder for the seventh phase of takeoff, from start to
-        finish of engine cutback. This phase is required for acoustic calculations.
-        '''
-        self._engine_cutback = phase_builder
-
-    def set_engine_cutback_to_mic_p1(self, phase_builder: PhaseBuilderBase):
-        '''
-        Assign a phase builder for the eighth phase of takeoff, engine cutback
-        to the P1 mic location. This phase is required for acoustic calculations.
-        '''
-        self._engine_cutback_to_mic_p1 = phase_builder
-
-    def set_mic_p1_to_climb(self, phase_builder: PhaseBuilderBase):
-        '''
-        Assign a phase builder for the ninth phase of takeoff, from P1 mic
-        location to climb. This phase is required for acoustic calculations.
-        '''
-        self._mic_p1_to_climb = phase_builder
-
-    def set_decision_speed_to_brake(self, phase_builder: PhaseBuilderBase):
-        '''
-        Assign a phase builder for delayed braking when the engine fails.
-
-        Note, this phase is optional. It is only required if balanced field length
-        calculations are required.
-        '''
-        self._decision_speed_to_brake = phase_builder
-
-    def set_brake_to_abort(
-        self, phase_builder: PhaseBuilderBase, balanced_field_ref=8_000.
-    ):
-        '''
-        Assign a phase builder for braking to fullstop after engine failure.
-
-        Note, this phase is optional. It is only required if balanced field length
-        calculations are required.
-
-        Parameters
-        ----------
-        phase_builder : PhaseBuilderBase
-
-        balanced_field_ref : float (8_000.0)
-            the ref value to use for the linkage constraint for the final range
-            between the liftoff-to-obstacle and the decision-speed-to-abort phases;
-
-        Notes
-        -----
-        The default value for `balanced_field_ref` is appropriate total takeoff distances
-        calculated in 'ft' for larger commercial passenger transports traveling in the
-        continental United States. International travel of similar aircraft may require a
-        larger value, while a smaller aircraft with a shorter range may require a smaller
-        value.
-        '''
-        self._brake_to_abort = phase_builder
-        self._balanced_field_ref = balanced_field_ref
 
     def build_trajectory(
         self, *, aviary_options: AviaryValues, model: om.Group = None,
@@ -633,11 +530,9 @@ class TakeoffTrajectory:
 
         ext_vars = basic_vars + ['angle_of_attack']
 
-        traj.link_phases([decision_speed_name, rotate_name], vars=ext_vars)
-
         liftoff_name = self._liftoff_to_obstacle.name
 
-        traj.link_phases([rotate_name, liftoff_name], vars=ext_vars)
+        traj.link_phases([decision_speed_name, rotate_name, liftoff_name], vars=ext_vars)
 
         obstacle_to_mic_p2 = self._obstacle_to_mic_p2
 
@@ -651,23 +546,8 @@ class TakeoffTrajectory:
             acoustics_vars = ext_vars + [Dynamic.Mission.FLIGHT_PATH_ANGLE, 'altitude']
 
             traj.link_phases(
-                [liftoff_name, obstacle_to_mic_p2_name],
-                vars=acoustics_vars)
-
-            traj.link_phases(
-                [obstacle_to_mic_p2_name, mic_p2_to_engine_cutback_name],
-                vars=acoustics_vars)
-
-            traj.link_phases(
-                [mic_p2_to_engine_cutback_name, engine_cutback_name],
-                vars=acoustics_vars)
-
-            traj.link_phases(
-                [engine_cutback_name, engine_cutback_to_mic_p1_name],
-                vars=acoustics_vars)
-
-            traj.link_phases(
-                [engine_cutback_to_mic_p1_name, mic_p1_to_climb_name],
+                [liftoff_name, obstacle_to_mic_p2_name, mic_p2_to_engine_cutback_name,
+                    engine_cutback_name, engine_cutback_to_mic_p1_name, mic_p1_to_climb_name],
                 vars=acoustics_vars)
 
         decision_speed_to_brake = self._decision_speed_to_brake
@@ -676,8 +556,8 @@ class TakeoffTrajectory:
             brake_name = decision_speed_to_brake.name
             abort_name = self._brake_to_abort.name
 
-            traj.link_phases([brake_release_name, brake_name], vars=basic_vars)
-            traj.link_phases([brake_name, abort_name], vars=basic_vars)
+            traj.link_phases([brake_release_name, brake_name,
+                             abort_name], vars=basic_vars)
 
             traj.add_linkage_constraint(
                 phase_a=abort_name, var_a='distance', loc_a='final',
