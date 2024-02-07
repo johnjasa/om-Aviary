@@ -13,7 +13,6 @@ from aviary.mission.flops_based.phases.detailed_landing_phases import (
     LandingTrajectory)
 from aviary.mission.flops_based.phases.detailed_takeoff_phases import (
     TakeoffPhase, TakeoffBrakeToAbort,
-    TakeoffEngineCutback, TakeoffEngineCutbackToMicP1,
     TakeoffMicP1ToClimb, TakeoffTrajectory)
 from aviary.subsystems.propulsion.engine_deck import EngineDeck
 from aviary.utils.aviary_values import AviaryValues
@@ -755,12 +754,13 @@ takeoff_engine_cutback_initial_guesses.set_val(
 takeoff_engine_cutback_initial_guesses.set_val('angle_of_attack', 5.0, 'deg')
 takeoff_engine_cutback_initial_guesses.set_val('mass', gross_mass, gross_mass_units)
 
-takeoff_engine_cutback_builder = TakeoffEngineCutback(
+takeoff_engine_cutback_builder = TakeoffPhase(
     'takeoff_engine_cutback',
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,
     user_options=takeoff_engine_cutback_user_options,
-    initial_guesses=takeoff_engine_cutback_initial_guesses)
+    initial_guesses=takeoff_engine_cutback_initial_guesses,
+    phase_type='7')
 
 takeoff_trajectory_builder.set_engine_cutback(takeoff_engine_cutback_builder)
 # endregion - engine cutback phase
@@ -817,12 +817,13 @@ takeoff_engine_cutback_to_mic_p1_initial_guesses.set_val('angle_of_attack', 5.0,
 takeoff_engine_cutback_to_mic_p1_initial_guesses.set_val(
     'mass', gross_mass, gross_mass_units)
 
-takeoff_engine_cutback_to_mic_p1_builder = TakeoffEngineCutbackToMicP1(
+takeoff_engine_cutback_to_mic_p1_builder = TakeoffPhase(
     'takeoff_engine_cutback_to_mic_p1',
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,
     user_options=takeoff_engine_cutback_to_mic_p1_user_options,
-    initial_guesses=takeoff_engine_cutback_to_mic_p1_initial_guesses)
+    initial_guesses=takeoff_engine_cutback_to_mic_p1_initial_guesses,
+    phase_type='8')
 
 takeoff_trajectory_builder.set_engine_cutback_to_mic_p1(
     takeoff_engine_cutback_to_mic_p1_builder)
