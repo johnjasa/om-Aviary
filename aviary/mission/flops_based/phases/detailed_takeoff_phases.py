@@ -144,12 +144,17 @@ class TakeoffPhase(PhaseBuilderBase):
 
         max_velocity, units = user_options.get_item('max_velocity')
 
+        if phase_type == '10':
+            fix_final = True
+        else:
+            fix_final = False
+
         phase.add_state(
             Dynamic.Mission.VELOCITY, fix_initial=fix_initial, lower=0, ref=max_velocity,
-            defect_ref=max_velocity, units=units, upper=max_velocity,
+            defect_ref=max_velocity, units=units, upper=max_velocity, fix_final=fix_final,
             rate_source=Dynamic.Mission.VELOCITY_RATE)
 
-        if phase_type == '4' or phase_type == '5' or phase_type == '6' or phase_type == '7' or phase_type == '8':
+        if phase_type == '4' or phase_type == '5' or phase_type == '6' or phase_type == '7' or phase_type == '8' or phase_type == '9':
             flight_path_angle_ref, units = user_options.get_item('flight_path_angle_ref')
 
             if phase_type == '4':
@@ -196,7 +201,7 @@ class TakeoffPhase(PhaseBuilderBase):
                 lower=0, upper=max_angle_of_attack,
                 ref=max_angle_of_attack)
 
-        elif phase_type == '4' or phase_type == '5' or phase_type == '6' or phase_type == '7' or phase_type == '8':
+        elif phase_type == '4' or phase_type == '5' or phase_type == '6' or phase_type == '7' or phase_type == '8' or phase_type == '9':
             lower_angle_of_attack, units = user_options.get_item('lower_angle_of_attack')
             upper_angle_of_attack = user_options.get_val('upper_angle_of_attack', units)
             angle_of_attack_ref = user_options.get_val('angle_of_attack_ref', units)
@@ -209,7 +214,7 @@ class TakeoffPhase(PhaseBuilderBase):
         else:
             phase.add_parameter('angle_of_attack', val=0.0, opt=False, units='deg')
 
-        if phase_type == '2a' or phase_type == '2b' or phase_type == '3' or phase_type == '7' or phase_type == '8':
+        if phase_type == '2a' or phase_type == '2b' or phase_type == '3' or phase_type == '7' or phase_type == '8' or phase_type == '9':
             phase.add_boundary_constraint(
                 'v_over_v_stall', loc='final', lower=1.2, ref=1.2)
             phase.add_timeseries_output(
@@ -270,7 +275,7 @@ class TakeoffPhase(PhaseBuilderBase):
             phase.add_boundary_constraint(
                 'v_over_v_stall', loc='final', lower=1.25, ref=1.25)
 
-        if phase_type == '8':
+        if phase_type == '8' or phase_type == '9':
             mic_range, units = user_options.get_item('mic_range')
 
             phase.add_boundary_constraint(
@@ -295,7 +300,7 @@ class TakeoffPhase(PhaseBuilderBase):
         num_segments = 3
         if self.phase_type == '4':
             num_segments = 5
-        elif self.phase_type == '5' or self.phase_type == '6' or self.phase_type == '7' or self.phase_type == '8':
+        elif self.phase_type == '5' or self.phase_type == '6' or self.phase_type == '7' or self.phase_type == '8' or self.phase_type == '9':
             num_segments = 7
         transcription = dm.Radau(num_segments=num_segments, order=3, compressed=True)
 
@@ -305,14 +310,20 @@ class TakeoffPhase(PhaseBuilderBase):
         """
         Return extra kwargs required for initializing the ODE.
         """
-        if self.phase_type == '4' or self.phase_type == '5' or self.phase_type == '6' or self.phase_type == '7':
+        if self.phase_type == '4' or self.phase_type == '5' or self.phase_type == '6' or self.phase_type == '7' or self.phase_type == '8' or self.phase_type == '9':
             climbing = True
         else:
             climbing = False
+
+        if self.phase_type == '10':
+            friction_key = Mission.Takeoff.BRAKING_FRICTION_COEFFICIENT
+        else:
+            friction_key = Mission.Takeoff.ROLLING_FRICTION_COEFFICIENT
+
         print(f'climbing: {climbing}')
         return {
             'climbing': climbing,
-            'friction_key': Mission.Takeoff.ROLLING_FRICTION_COEFFICIENT}
+            'friction_key': friction_key}
 
 
 TakeoffPhase._add_meta_data('max_duration', val=1000.0, units='s')
@@ -350,246 +361,6 @@ TakeoffPhase._add_meta_data('mic_altitude', val=1.0, units='ft')
 TakeoffPhase._add_meta_data('final_range', val=1000., units='ft')
 
 TakeoffPhase._add_meta_data('mic_range', val=1000.0, units='ft')
-
-
-@_init_initial_guess_meta_data
-class TakeoffMicP1ToClimb(PhaseBuilderBase):
-    __slots__ = ()
-
-    # region : derived type customization points
-    _meta_data_ = {}
-
-    default_name = 'takeoff_climb'
-
-    default_ode_class = TakeoffODE
-    # endregion : derived type customization points
-
-    def build_phase(self, aviary_options: AviaryValues = None, phase_type=None):
-
-        phase: dm.Phase = super().build_phase(aviary_options)
-
-        user_options: AviaryValues = self.user_options
-
-        max_duration, units = user_options.get_item('max_duration')
-        duration_ref = user_options.get_val('duration_ref', units)
-        initial_ref = user_options.get_val('initial_ref', units)
-
-        phase.set_time_options(
-            fix_initial=False, duration_bounds=(1, max_duration),
-            initial_bounds=(1, initial_ref),
-            duration_ref=duration_ref, initial_ref=initial_ref,
-            units=units)
-
-        distance_max, units = user_options.get_item('distance_max')
-
-        phase.add_state(
-            Dynamic.Mission.DISTANCE, fix_initial=False, lower=0, ref=distance_max,
-            defect_ref=distance_max, units=units, upper=distance_max,
-            rate_source=Dynamic.Mission.DISTANCE_RATE)
-
-        altitude_ref, units = user_options.get_item('altitude_ref')
-
-        phase.add_state(
-            Dynamic.Mission.ALTITUDE, fix_initial=False, lower=0, ref=altitude_ref,
-            defect_ref=altitude_ref, units=units,
-            rate_source=Dynamic.Mission.ALTITUDE_RATE)
-
-        max_velocity, units = user_options.get_item('max_velocity')
-
-        phase.add_state(
-            Dynamic.Mission.VELOCITY, fix_initial=False, lower=0, ref=max_velocity,
-            defect_ref=max_velocity, units=units, upper=max_velocity,
-            rate_source=Dynamic.Mission.VELOCITY_RATE)
-
-        flight_path_angle_ref, units = user_options.get_item('flight_path_angle_ref')
-
-        phase.add_state(
-            Dynamic.Mission.FLIGHT_PATH_ANGLE, fix_initial=False, lower=0,
-            ref=flight_path_angle_ref,
-            defect_ref=flight_path_angle_ref, units=units,
-            rate_source=Dynamic.Mission.FLIGHT_PATH_ANGLE_RATE)
-
-        phase.add_state(
-            Dynamic.Mission.MASS, fix_initial=False, fix_final=False,
-            lower=0.0, upper=1e9, ref=5e4, defect_ref=5e4, units='kg',
-            rate_source=Dynamic.Mission.FUEL_FLOW_RATE_NEGATIVE_TOTAL,
-            targets=Dynamic.Mission.MASS,
-        )
-
-        phase.add_control(
-            Dynamic.Mission.THROTTLE,
-            targets=Dynamic.Mission.THROTTLE, units='unitless',
-            opt=False
-        )
-
-        lower_angle_of_attack, units = user_options.get_item('lower_angle_of_attack')
-        upper_angle_of_attack = user_options.get_val('upper_angle_of_attack', units)
-        angle_of_attack_ref = user_options.get_val('angle_of_attack_ref', units)
-
-        phase.add_control(
-            'angle_of_attack', opt=True, units=units,
-            lower=lower_angle_of_attack, upper=upper_angle_of_attack,
-            ref=angle_of_attack_ref)
-
-        phase.add_timeseries_output(
-            Dynamic.Mission.DRAG, output_name=Dynamic.Mission.DRAG, units='lbf'
-        )
-
-        phase.add_timeseries_output(
-            Dynamic.Mission.THRUST_TOTAL,
-            output_name=Dynamic.Mission.THRUST_TOTAL, units='lbf'
-        )
-
-        mic_range, units = user_options.get_item('mic_range')
-
-        phase.add_boundary_constraint(
-            Dynamic.Mission.DISTANCE, loc='final', equals=mic_range, ref=mic_range,
-            units=units, linear=True)
-
-        phase.add_boundary_constraint(
-            'v_over_v_stall', loc='final', lower=1.25, ref=1.25)
-
-        return phase
-
-    def make_default_transcription(self):
-        '''
-        Return a transcription object to be used by default in build_phase.
-        '''
-        num_segments_climb = 7
-        transcription = dm.Radau(num_segments=num_segments_climb, order=3,
-                                 compressed=True)
-
-        return transcription
-
-    def _extra_ode_init_kwargs(self):
-        """
-        Return extra kwargs required for initializing the ODE.
-        """
-        return {
-            'climbing': True,
-            'friction_key': Mission.Takeoff.ROLLING_FRICTION_COEFFICIENT}
-
-
-TakeoffMicP1ToClimb._add_meta_data('max_duration', val=100., units='s')
-
-TakeoffMicP1ToClimb._add_meta_data('duration_ref', val=1., units='s')
-
-TakeoffMicP1ToClimb._add_meta_data('initial_ref', val=10.0, units='s')
-
-TakeoffMicP1ToClimb._add_meta_data('distance_max', val=1000., units='ft')
-
-TakeoffMicP1ToClimb._add_meta_data('max_velocity', val=100., units='ft/s')
-
-TakeoffMicP1ToClimb._add_meta_data('altitude_ref', val=1., units='ft')
-
-TakeoffMicP1ToClimb._add_meta_data('flight_path_angle_ref', val=5., units='deg')
-
-TakeoffMicP1ToClimb._add_meta_data('lower_angle_of_attack', val=-10., units='deg')
-
-TakeoffMicP1ToClimb._add_meta_data('upper_angle_of_attack', val=15., units='deg')
-
-TakeoffMicP1ToClimb._add_meta_data('angle_of_attack_ref', val=10., units='deg')
-
-TakeoffMicP1ToClimb._add_meta_data('mic_range', val=1000., units='ft')
-
-TakeoffMicP1ToClimb._add_initial_guess_meta_data(
-    InitialGuessControl('angle_of_attack'))
-
-TakeoffMicP1ToClimb._add_initial_guess_meta_data(InitialGuessState('altitude'))
-
-TakeoffMicP1ToClimb._add_initial_guess_meta_data(
-    InitialGuessState(Dynamic.Mission.FLIGHT_PATH_ANGLE))
-
-
-@_init_initial_guess_meta_data
-class TakeoffBrakeToAbort(PhaseBuilderBase):
-    __slots__ = ()
-
-    # region : derived type customization points
-    _meta_data_ = {}
-
-    default_name = 'takeoff_abort'
-
-    default_ode_class = TakeoffODE
-    # endregion : derived type customization points
-
-    def build_phase(self, aviary_options=None, phase_type=None):
-
-        phase: dm.Phase = super().build_phase(aviary_options)
-
-        user_options: AviaryValues = self.user_options
-
-        max_duration, units = user_options.get_item('max_duration')
-        duration_ref = user_options.get_val('duration_ref', units)
-        initial_ref = user_options.get_val('initial_ref', units)
-
-        phase.set_time_options(
-            fix_initial=False, duration_bounds=(1, max_duration),
-            initial_bounds=(1, initial_ref),
-            duration_ref=duration_ref, initial_ref=initial_ref,
-            units=units)
-
-        distance_max, units = user_options.get_item('distance_max')
-
-        phase.add_state(
-            Dynamic.Mission.DISTANCE, fix_initial=False, lower=0, ref=distance_max,
-            defect_ref=distance_max, units=units, upper=distance_max,
-            rate_source=Dynamic.Mission.DISTANCE_RATE)
-
-        max_velocity, units = user_options.get_item('max_velocity')
-
-        phase.add_state(
-            Dynamic.Mission.VELOCITY, fix_initial=False, fix_final=True,
-            lower=0, ref=max_velocity, upper=max_velocity,
-            defect_ref=max_velocity, units=units,
-            rate_source=Dynamic.Mission.VELOCITY_RATE)
-
-        phase.add_state(
-            Dynamic.Mission.MASS, fix_initial=False, fix_final=False,
-            lower=0.0, upper=1e9, ref=5e4, defect_ref=5e4, units='kg',
-            rate_source=Dynamic.Mission.FUEL_FLOW_RATE_NEGATIVE_TOTAL,
-            targets=Dynamic.Mission.MASS,
-        )
-
-        phase.add_control(
-            Dynamic.Mission.THROTTLE,
-            targets=Dynamic.Mission.THROTTLE, units='unitless',
-            opt=False
-        )
-
-        phase.add_parameter('angle_of_attack', val=0.0, opt=False, units='deg')
-
-        return phase
-
-    def make_default_transcription(self):
-        '''
-        Return a transcription object to be used by default in build_phase.
-        '''
-        transcription = dm.Radau(num_segments=3, order=3, compressed=True)
-
-        return transcription
-
-    def _extra_ode_init_kwargs(self):
-        """
-        Return extra kwargs required for initializing the ODE.
-        """
-        return {
-            'climbing': False,
-            'friction_key': Mission.Takeoff.BRAKING_FRICTION_COEFFICIENT}
-
-
-TakeoffBrakeToAbort._add_meta_data('max_duration', val=1000.0, units='s')
-
-TakeoffBrakeToAbort._add_meta_data('duration_ref', val=1.0, units='s')
-
-TakeoffBrakeToAbort._add_meta_data('initial_ref', val=10.0, units='s')
-
-TakeoffBrakeToAbort._add_meta_data('distance_max', val=1000.0, units='ft')
-
-TakeoffBrakeToAbort._add_meta_data('max_velocity', val=100.0, units='ft/s')
-
-TakeoffBrakeToAbort._add_initial_guess_meta_data(
-    InitialGuessParameter('angle_of_attack'))
 
 
 class TakeoffTrajectory:

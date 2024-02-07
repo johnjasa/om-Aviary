@@ -12,8 +12,8 @@ from aviary.mission.flops_based.phases.detailed_landing_phases import (
     LandingNoseDownToStop, LandingObstacleToFlare, LandingTouchdownToNoseDown,
     LandingTrajectory)
 from aviary.mission.flops_based.phases.detailed_takeoff_phases import (
-    TakeoffPhase, TakeoffBrakeToAbort,
-    TakeoffMicP1ToClimb, TakeoffTrajectory)
+    TakeoffPhase,
+    TakeoffTrajectory)
 from aviary.subsystems.propulsion.engine_deck import EngineDeck
 from aviary.utils.aviary_values import AviaryValues
 from aviary.utils.preprocessors import preprocess_propulsion
@@ -863,12 +863,13 @@ takeoff_mic_p1_to_climb_initial_guesses.set_val(
 takeoff_mic_p1_to_climb_initial_guesses.set_val('angle_of_attack', 5.0, 'deg')
 takeoff_mic_p1_to_climb_initial_guesses.set_val('mass', gross_mass, gross_mass_units)
 
-takeoff_mic_p1_to_climb_builder = TakeoffMicP1ToClimb(
+takeoff_mic_p1_to_climb_builder = TakeoffPhase(
     'takeoff_mic_p1_to_climb',
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options,
     user_options=takeoff_mic_p1_to_climb_user_options,
-    initial_guesses=takeoff_mic_p1_to_climb_initial_guesses)
+    initial_guesses=takeoff_mic_p1_to_climb_initial_guesses,
+    phase_type='9')
 
 takeoff_trajectory_builder.set_mic_p1_to_climb(takeoff_mic_p1_to_climb_builder)
 # endregion - mic p1 to climb
@@ -1118,12 +1119,14 @@ balanced_abort_initial_guesses.set_val('mass', gross_mass, gross_mass_units)
 balanced_abort_initial_guesses.set_val('throttle', 0.)
 balanced_abort_initial_guesses.set_val('angle_of_attack', 0., 'deg')
 
-balanced_abort_builder = TakeoffBrakeToAbort(
+balanced_abort_builder = TakeoffPhase(
     'balanced_abort',
     core_subsystems=default_mission_subsystems,
     subsystem_options=takeoff_subsystem_options_spoilers,
     user_options=balanced_abort_user_options,
-    initial_guesses=balanced_abort_initial_guesses)
+    initial_guesses=balanced_abort_initial_guesses,
+    phase_type='10',
+)
 
 distance_max = balanced_liftoff_user_options.get_val('distance_max', 'ft')
 
