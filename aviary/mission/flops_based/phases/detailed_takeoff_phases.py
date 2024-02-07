@@ -121,7 +121,7 @@ class TakeoffPhase(PhaseBuilderBase):
                 initial_bounds=(1, initial_ref),
                 duration_ref=duration_ref, initial_ref=initial_ref,
                 units=units)
-        elif phase_type == '7':
+        elif phase_type in ['2b', '7']:
             phase.set_time_options(
                 fix_initial=False, fix_duration=True,
                 initial_bounds=(1, initial_ref),
@@ -132,8 +132,6 @@ class TakeoffPhase(PhaseBuilderBase):
             phase.set_time_options(
                 fix_initial=fix_initial, duration_bounds=(1, max_duration),
                 duration_ref=duration_ref, units=units)
-        if phase_type == '2b':
-            phase.set_time_options(fix_duration=True)
 
         distance_max, units = user_options.get_item('distance_max')
 
@@ -154,7 +152,7 @@ class TakeoffPhase(PhaseBuilderBase):
             defect_ref=max_velocity, units=units, upper=max_velocity, fix_final=fix_final,
             rate_source=Dynamic.Mission.VELOCITY_RATE)
 
-        if phase_type == '4' or phase_type == '5' or phase_type == '6' or phase_type == '7' or phase_type == '8' or phase_type == '9':
+        if phase_type in ['4', '5', '6', '7', '8', '9']:
             flight_path_angle_ref, units = user_options.get_item('flight_path_angle_ref')
 
             if phase_type == '4':
@@ -189,11 +187,6 @@ class TakeoffPhase(PhaseBuilderBase):
             opt=False
         )
 
-        print()
-        print(self.name)
-        print(f'phase_type: {phase_type}')
-        print(f'fix_initial: {fix_initial}')
-
         if phase_type == '3':
             max_angle_of_attack, units = user_options.get_item('max_angle_of_attack')
             phase.add_polynomial_control(
@@ -201,7 +194,7 @@ class TakeoffPhase(PhaseBuilderBase):
                 lower=0, upper=max_angle_of_attack,
                 ref=max_angle_of_attack)
 
-        elif phase_type == '4' or phase_type == '5' or phase_type == '6' or phase_type == '7' or phase_type == '8' or phase_type == '9':
+        elif phase_type in ['4', '5', '6', '7', '8', '9']:
             lower_angle_of_attack, units = user_options.get_item('lower_angle_of_attack')
             upper_angle_of_attack = user_options.get_val('upper_angle_of_attack', units)
             angle_of_attack_ref = user_options.get_val('angle_of_attack_ref', units)
@@ -214,7 +207,7 @@ class TakeoffPhase(PhaseBuilderBase):
         else:
             phase.add_parameter('angle_of_attack', val=0.0, opt=False, units='deg')
 
-        if phase_type == '2a' or phase_type == '2b' or phase_type == '3' or phase_type == '7' or phase_type == '8' or phase_type == '9':
+        if phase_type in ['2a', '2b', '3', '7', '8', '9']:
             phase.add_boundary_constraint(
                 'v_over_v_stall', loc='final', lower=1.2, ref=1.2)
             phase.add_timeseries_output(
@@ -243,8 +236,7 @@ class TakeoffPhase(PhaseBuilderBase):
             phase.add_boundary_constraint('eoms.forces_vertical', loc='initial', equals=0,
                                           ref=100000)
 
-        if phase_type == '5' or phase_type == '6':
-
+        if phase_type in ['5', '6']:
             phase.add_timeseries_output(
                 Dynamic.Mission.THRUST_TOTAL,
                 output_name=Dynamic.Mission.THRUST_TOTAL, units='lbf'
@@ -275,7 +267,7 @@ class TakeoffPhase(PhaseBuilderBase):
             phase.add_boundary_constraint(
                 'v_over_v_stall', loc='final', lower=1.25, ref=1.25)
 
-        if phase_type == '8' or phase_type == '9':
+        if phase_type in ['8', '9']:
             mic_range, units = user_options.get_item('mic_range')
 
             phase.add_boundary_constraint(
@@ -300,7 +292,7 @@ class TakeoffPhase(PhaseBuilderBase):
         num_segments = 3
         if self.phase_type == '4':
             num_segments = 5
-        elif self.phase_type == '5' or self.phase_type == '6' or self.phase_type == '7' or self.phase_type == '8' or self.phase_type == '9':
+        elif self.phase_type in ['5', '6', '7', '8', '9']:
             num_segments = 7
         transcription = dm.Radau(num_segments=num_segments, order=3, compressed=True)
 
@@ -310,7 +302,7 @@ class TakeoffPhase(PhaseBuilderBase):
         """
         Return extra kwargs required for initializing the ODE.
         """
-        if self.phase_type == '4' or self.phase_type == '5' or self.phase_type == '6' or self.phase_type == '7' or self.phase_type == '8' or self.phase_type == '9':
+        if self.phase_type in ['4', '5', '6', '7', '8', '9']:
             climbing = True
         else:
             climbing = False
