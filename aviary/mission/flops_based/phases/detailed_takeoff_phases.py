@@ -290,8 +290,10 @@ class TakeoffPhase(PhaseBuilderBase):
         Return a transcription object to be used by default in build_phase.
         '''
         num_segments = 3
-        if self.phase_type in ['5', '6', '9']:
+        if self.phase_type in ['6', '9']:
             num_segments = 7
+        elif self.phase_type in ['5']:
+            num_segments = 9
         transcription = dm.Radau(num_segments=num_segments, order=3, compressed=True)
 
         return transcription
