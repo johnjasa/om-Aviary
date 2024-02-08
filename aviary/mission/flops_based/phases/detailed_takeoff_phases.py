@@ -291,7 +291,7 @@ class TakeoffPhase(PhaseBuilderBase):
         '''
         num_segments = 3
         if self.phase_type in ['5', '6', '9']:
-            num_segments = 5
+            num_segments = 7
         transcription = dm.Radau(num_segments=num_segments, order=3, compressed=True)
 
         return transcription

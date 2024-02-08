@@ -119,7 +119,7 @@ class TestFLOPSDetailedTakeoff(unittest.TestCase):
             set_aviary_initial_values(takeoff.model, aviary_options)
 
             warnings.simplefilter("ignore", om.PromotionWarning)
-            takeoff.setup(check=True)
+            takeoff.setup(check=False)
 
         # Turn off solver printing so that the SNOPT output is readable.
         takeoff.set_solver_print(level=0)
