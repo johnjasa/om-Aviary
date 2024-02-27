@@ -10,8 +10,7 @@ from aviary.mission.gasp_based.ode.flight_path_eom import FlightPathEOM
 from aviary.mission.gasp_based.ode.params import ParamPort
 from aviary.subsystems.propulsion.propulsion_builder import PropulsionBuilderBase
 from aviary.variable_info.variables import Aircraft, Dynamic, Mission
-from aviary.mission.ode.specific_energy_rate import SpecificEnergyRate
-from aviary.mission.ode.altitude_rate import AltitudeRate
+from aviary.variable_info.variable_meta_data import _MetaData
 
 
 class FlightPathODE(BaseODE):
@@ -36,6 +35,18 @@ class FlightPathODE(BaseODE):
             types=bool,
             default=False,
             desc="If true then no flaps or gear are included. Useful for high-speed flight phases.")
+        self.options.declare(
+            "solve_for_throttle",
+            types=bool,
+            default=False,
+            desc="If true then the throttle is solved for using the drag equation.",
+        )
+        self.options.declare(
+            'external_subsystems', default=[],
+            desc='list of external subsystem builder instances to be added to the ODE')
+        self.options.declare(
+            'meta_data', default=_MetaData,
+            desc='metadata associated with the variables to be passed into the ODE')
 
     def setup(self):
         nn = self.options["num_nodes"]
@@ -49,8 +60,7 @@ class FlightPathODE(BaseODE):
         kwargs = {'num_nodes': nn, 'aviary_inputs': aviary_options,
                   'method': 'low_speed'}
         if self.options['clean']:
-            kwargs['method'] = 'cruise'
-            kwargs['output_alpha'] = False
+            kwargs['method'] = 'computed'
 
         if input_speed_type is SpeedType.EAS:
             speed_inputs = ["EAS"]
@@ -161,7 +171,7 @@ class FlightPathODE(BaseODE):
                                            **kwargs),
                                        promotes_outputs=subsystem.mission_outputs(**kwargs))
 
-        if analysis_scheme is AnalysisScheme.SHOOTING:
+        if analysis_scheme is AnalysisScheme.SHOOTING or self.options['solve_for_throttle']:
             prop_group.add_subsystem(
                 'calc_thrust',
                 om.ExecComp(

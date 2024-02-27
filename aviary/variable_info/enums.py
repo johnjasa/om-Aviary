@@ -61,6 +61,7 @@ class EquationsOfMotion(Enum):
     TWO_DEGREES_OF_FREEDOM = '2DOF'
     SOLVED_2DOF = 'solved_2DOF'
     SOLVED = 'solved'
+    NEW_2DOF = 'new_2DOF'
 
 
 @unique

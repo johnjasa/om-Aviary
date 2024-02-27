@@ -36,6 +36,7 @@ from aviary.mission.gasp_based.phases.cruise_phase import CruisePhase
 from aviary.mission.gasp_based.phases.accel_phase import AccelPhase
 from aviary.mission.gasp_based.phases.ascent_phase import AscentPhase
 from aviary.mission.gasp_based.phases.descent_phase import DescentPhase
+from aviary.mission.flops_based.phases.flight_path_phase import FlightPathPhase
 from aviary.mission.gasp_based.phases.landing_group import LandingSegment
 from aviary.mission.gasp_based.phases.taxi_group import TaxiSegment
 from aviary.mission.gasp_based.phases.v_rotate_comp import VRotateComp
@@ -72,6 +73,7 @@ TWO_DEGREES_OF_FREEDOM = EquationsOfMotion.TWO_DEGREES_OF_FREEDOM
 HEIGHT_ENERGY = EquationsOfMotion.HEIGHT_ENERGY
 SOLVED = EquationsOfMotion.SOLVED
 SOLVED_2DOF = EquationsOfMotion.SOLVED_2DOF
+NEW_2DOF = EquationsOfMotion.NEW_2DOF
 
 
 def wrapped_convert_units(val_unit_tuple, new_units):
@@ -334,7 +336,7 @@ class AviaryProblem(om.Problem):
 
         ## PROCESSING ##
         # set up core subsystems
-        if mission_method in (HEIGHT_ENERGY, SOLVED_2DOF):
+        if mission_method in (HEIGHT_ENERGY, SOLVED_2DOF, NEW_2DOF):
             everything_else_origin = FLOPS
         elif mission_method in (TWO_DEGREES_OF_FREEDOM, SOLVED):
             everything_else_origin = GASP
@@ -733,6 +735,9 @@ class AviaryProblem(om.Problem):
             else:
                 phase_builder = TwoDOFPhase
 
+        if self.mission_method is NEW_2DOF:
+            phase_builder = FlightPathPhase
+
         phase_object = phase_builder.from_phase_info(
             phase_name, phase_options, default_mission_subsystems, meta_data=self.meta_data)
 
@@ -1091,7 +1096,7 @@ class AviaryProblem(om.Problem):
                 for timeseries in timeseries_to_add:
                     phase.add_timeseries_output(timeseries)
 
-        if self.mission_method in (TWO_DEGREES_OF_FREEDOM, HEIGHT_ENERGY, SOLVED_2DOF):
+        if self.mission_method in (TWO_DEGREES_OF_FREEDOM, HEIGHT_ENERGY, SOLVED_2DOF, NEW_2DOF):
             if self.analysis_scheme is AnalysisScheme.COLLOCATION:
                 self.phase_objects = []
                 for phase_idx, phase_name in enumerate(phases):
@@ -1113,7 +1118,7 @@ class AviaryProblem(om.Problem):
                     for parameter in parameter_dict:
                         external_parameters[phase_name][parameter] = parameter_dict[parameter]
 
-            if self.mission_method in (HEIGHT_ENERGY, SOLVED_2DOF):
+            if self.mission_method in (HEIGHT_ENERGY, SOLVED_2DOF, NEW_2DOF):
                 traj = setup_trajectory_params(
                     self.model, traj, self.aviary_inputs, phases, meta_data=self.meta_data, external_parameters=external_parameters)
 
@@ -1239,7 +1244,7 @@ class AviaryProblem(om.Problem):
                 self.post_mission.add_subsystem(external_subsystem.name,
                                                 subsystem_postmission)
 
-        if self.mission_method in (HEIGHT_ENERGY, SOLVED_2DOF):
+        if self.mission_method in (HEIGHT_ENERGY, SOLVED_2DOF, NEW_2DOF):
             phases = list(self.phase_info.keys())
             ecomp = om.ExecComp('fuel_burned = initial_mass - mass_final',
                                 initial_mass={'units': 'lbm'},
@@ -1315,7 +1320,7 @@ class AviaryProblem(om.Problem):
                 ('initial_mass', Mission.Design.GROSS_MASS)],
             promotes_outputs=[("mass_resid", Mission.Constraints.MASS_RESIDUAL)])
 
-        if self.mission_method not in (SOLVED, SOLVED_2DOF):
+        if self.mission_method not in (SOLVED, SOLVED_2DOF, NEW_2DOF):
             self.post_mission.add_constraint(
                 Mission.Constraints.MASS_RESIDUAL, equals=0.0, ref=1.e5)
 
@@ -1686,7 +1691,7 @@ class AviaryProblem(om.Problem):
             for dv_name, dv_dict in dv_dict.items():
                 self.model.add_design_var(dv_name, **dv_dict)
 
-        if self.mission_method in (HEIGHT_ENERGY, SOLVED_2DOF):
+        if self.mission_method in (HEIGHT_ENERGY, SOLVED_2DOF, NEW_2DOF):
             optimize_mass = self.pre_mission_info.get('optimize_mass')
             if optimize_mass:
                 self.model.add_design_var(Mission.Design.GROSS_MASS, units='lbm',
@@ -1942,7 +1947,7 @@ class AviaryProblem(om.Problem):
             if self.mission_method is SOLVED:
                 # If so, add solved guesses to the problem
                 self._add_solved_guesses(idx, phase_name, phase)
-            elif self.mission_method is SOLVED_2DOF:
+            elif self.mission_method in (SOLVED_2DOF, NEW_2DOF):
                 self.phase_objects[idx].apply_initial_guesses(self, 'traj', phase)
             else:
                 # If not, fetch the initial guesses specific to the phase

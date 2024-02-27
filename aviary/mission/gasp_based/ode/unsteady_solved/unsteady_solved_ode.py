@@ -123,10 +123,7 @@ class UnsteadySolvedODE(BaseODE):
             promotes_outputs=["*"],
         )
 
-        control_iter_group = self.add_subsystem("control_iter_group",
-                                                subsys=om.Group(),
-                                                promotes_inputs=["*"],
-                                                promotes_outputs=["*"])
+        control_iter_group = om.Group()
 
         # Also need to change the run script and the iter group solver when using this; just testing for now
         if balance_throttle:
@@ -157,24 +154,31 @@ class UnsteadySolvedODE(BaseODE):
             throttle_balance_group.nonlinear_solver.linesearch = om.BoundsEnforceLS()
             throttle_balance_group.linear_solver = om.DirectSolver(assemble_jac=True)
             throttle_balance_group.nonlinear_solver.options['err_on_non_converge'] = True
+            throttle_balance_group.nonlinear_solver.options['iprint'] = 3
+            throttle_balance_group.nonlinear_solver.options['debug_print'] = True
 
         kwargs = {
             'num_nodes': nn,
             'aviary_inputs': aviary_options,
             'method': 'low_speed',
         }
-        if self.options['clean']:
-            kwargs['method'] = 'cruise'
-            kwargs['output_alpha'] = False
+
         for subsystem in core_subsystems:
             # check if subsystem_options has entry for a subsystem of this name
             if subsystem.name in subsystem_options:
                 kwargs.update(subsystem_options[subsystem.name])
+            if isinstance(subsystem, AerodynamicsBuilderBase):
+                if self.options['clean']:
+                    if subsystem.code_origin is LegacyCode.FLOPS:
+                        kwargs['method'] = 'computed'
+                    else:
+                        kwargs['method'] = 'cruise'
+                        kwargs['output_alpha'] = False
             system = subsystem.build_mission(**kwargs)
             if system is not None:
                 if isinstance(subsystem, AerodynamicsBuilderBase):
                     mission_inputs = subsystem.mission_inputs(**kwargs)
-                    if subsystem.code_origin is LegacyCode.FLOPS:
+                    if subsystem.code_origin is LegacyCode.FLOPS and not self.options['clean']:
                         mission_inputs.remove('angle_of_attack')
                         mission_inputs.append(('angle_of_attack', 'alpha'))
                     control_iter_group.add_subsystem(subsystem.name,
@@ -238,7 +242,7 @@ class UnsteadySolvedODE(BaseODE):
                                              promotes_inputs=[("g", "TAS_resid")],
                                              promotes_outputs=[("KS", "ks_TAS_resid")])
 
-            control_iter_group.add_constraint("ks_TAS_resid", equals=0.0, ref=1.e4)
+            control_iter_group.add_constraint("ks_TAS_resid", equals=0.0, ref=1.e2)
 
         control_iter_group.add_subsystem("thrust_alpha_bal", subsys=thrust_alpha_bal,
                                          promotes_inputs=["*"],
@@ -249,6 +253,11 @@ class UnsteadySolvedODE(BaseODE):
                                                               rtol=1.0e-10)
         # control_iter_group.nonlinear_solver.linesearch = om.BoundsEnforceLS()
         control_iter_group.linear_solver = om.DirectSolver(assemble_jac=True)
+
+        self.add_subsystem("control_iter_group",
+                           subsys=control_iter_group,
+                           promotes_inputs=["*"],
+                           promotes_outputs=["*"])
 
         self.add_subsystem("mass_rate",
                            om.ExecComp("dmass_dr = fuelflow * dt_dr",

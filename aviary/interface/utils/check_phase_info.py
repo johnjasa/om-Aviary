@@ -5,6 +5,7 @@ TWO_DEGREES_OF_FREEDOM = EquationsOfMotion.TWO_DEGREES_OF_FREEDOM
 HEIGHT_ENERGY = EquationsOfMotion.HEIGHT_ENERGY
 SOLVED = EquationsOfMotion.SOLVED
 SOLVED_2DOF = EquationsOfMotion.SOLVED_2DOF
+NEW_2DOF = EquationsOfMotion.NEW_2DOF
 
 
 def check_phase_info(phase_info, mission_method):
@@ -186,6 +187,8 @@ def check_phase_info(phase_info, mission_method):
     elif mission_method is SOLVED:
         return
     elif mission_method is SOLVED_2DOF:
+        return
+    elif mission_method is NEW_2DOF:
         return
     elif mission_method is HEIGHT_ENERGY:
         for phase in phase_info:
