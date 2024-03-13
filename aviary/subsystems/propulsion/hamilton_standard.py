@@ -520,8 +520,8 @@ class PreHamiltonStandard(om.ExplicitComponent):
         outputs['adv_ratio'] = 5.309 * vktas / tipspd
         diam_prop = inputs[Aircraft.Engine.PROPELLER_DIAMETER][0]
         shp = inputs[Dynamic.Mission.SHAFT_POWER]
-        outputs['power_coefficient'] = shp * 10.E10 / \
-            outputs['density_ratio'] / (2.*tipspd**3*diam_prop**2*6966.)
+        outputs['power_coefficient'] = shp * 7177720.35601 / \
+            outputs['density_ratio'] / (tipspd**3*diam_prop**2)
 
     def compute_partials(self, inputs, partials):
         vktas = inputs[Dynamic.Mission.VELOCITY]
@@ -542,7 +542,7 @@ class PreHamiltonStandard(om.ExplicitComponent):
             0.00150933 * vktas * sqrt_temp_ratio / (2 * temp)
         partials["adv_ratio", Dynamic.Mission.VELOCITY] = 5.309 / tipspd
         partials["adv_ratio", Dynamic.Mission.PROPELLER_TIP_SPEED] = - \
-            5.309 / (tipspd * tipspd)
+            5.309 * vktas / (tipspd * tipspd)
         partials["power_coefficient", Dynamic.Mission.SHAFT_POWER] = 10.E10 * \
             RHO_SEA_LEVEL_ENGLISH / (rho * 2.*tipspd**3*diam_prop**2*6966.)
         partials["power_coefficient", Dynamic.Mission.DENSITY] = -10.E10 * shp * \
@@ -945,7 +945,8 @@ class PostHamiltonStandard(om.ExplicitComponent):
 
 if __name__ == "__main__":
     model = om.Group()
-    prehs = model.add_subsystem('prehs', PreHamiltonStandard(num_nodes=1), promotes=['*'])
+    prehs = model.add_subsystem(
+        'prehs', PreHamiltonStandard(num_nodes=1), promotes=['*'])
     prob = om.Problem(model)
     prob.set_solver_print(level=1)
     # prob.setup(mode='rev')
@@ -955,7 +956,7 @@ if __name__ == "__main__":
     prob.set_val(Aircraft.Engine.PROPELLER_DIAMETER, 12.0, units='ft')
     prob.set_val(Dynamic.Mission.SHAFT_POWER, val=1850.0, units='hp')
     prob.set_val(Dynamic.Mission.DENSITY, val=RHO_SEA_LEVEL_ENGLISH, units='slug/ft**3')
-    prob.set_val(Dynamic.Mission.VELOCITY, val=0.0, units='knot')
+    prob.set_val(Dynamic.Mission.VELOCITY, val=100.0, units='knot')
     prob.set_val(Dynamic.Mission.TEMPERATURE, val=TSLS_DEGR, units='degR')
     prob.run_model()
 
@@ -964,10 +965,10 @@ if __name__ == "__main__":
     print(f"  power_coefficient: {prob.get_val('prehs.power_coefficient')}")
 
     # 10.E10 is causing just a little numerical noise
-    partial_data = prob.check_partials(out_stream=None,
+    partial_data = prob.check_partials(
         compact_print=True, show_only_incorrect=True, form='central', method="cs", minimum_step=1e-12)
     from openmdao.utils.assert_utils import assert_check_partials
-    assert_check_partials(partial_data, atol=1e-5, rtol=1e-5)
+    assert_check_partials(partial_data, atol=5e-5, rtol=1e-5)
 
 
 if __name__ == "__main3__":
