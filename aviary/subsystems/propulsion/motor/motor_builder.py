@@ -1,7 +1,7 @@
 from aviary.subsystems.subsystem_builder_base import SubsystemBuilderBase
 from ttbw.motor.model.motor_premission import MotorPreMission
 from ttbw.motor.model.motor_mission import MotorMission
-from ttbw.motor.motor_variables import Aircraft, Mission
+from ttbw.motor.motor_variables import Aircraft, Mission, Dynamic
 from ttbw.motor.motor_variable_meta_data import ExtendedMetaData
 
 
@@ -115,10 +115,11 @@ class MotorBuilder(SubsystemBuilderBase):
         This method returns a dictionary of constraints for the motor subsystem.
         '''
         if self.include_constraints:
+            # TBD do we need anything else here to setup this constraint? i.e. exec comp in mission?
             constraints = {
-                (Mission.Motor.POWER_OUT): {
-                    'upper': 0.0,
-                    'lower': Aircraft.Motor.POWER_MAX,
+                (Mission.Motor.TORQUE): {
+                    'upper': Aircraft.Motor.TORQUE_MAX,
+                    'lower': 0.0,
                     'type': 'path'
                 }
             }
@@ -148,11 +149,12 @@ class MotorBuilder(SubsystemBuilderBase):
         '''
 
         DVs = {
-            Aircraft.Motor.POWER_MAX: {
-                'units': 'kW',
+            # TBD do we need this?
+            Dynamic.Mission.THROTTLE: {
+                'units': 'unitless',
                 'lower': 0.0,
-                'upper': None
-            },
+                'upper': 1.0
+            }
         }
 
         return DVs
@@ -174,7 +176,18 @@ class MotorBuilder(SubsystemBuilderBase):
             - any additional keyword arguments required by OpenMDAO for the variable.
         '''
 
-        parameters_dict = {}
+        parameters_dict = {
+            Aircraft.Engine.SCALE_FACTOR: {
+                'units': 'unitless',
+                'lower': 0.001,
+                'upper': None
+            },
+            Mission.Motor.RPM: {
+                'units': 'rpm',
+                'lower': 0.1,
+                'upper': 20000
+            },
+        }
 
         return parameters_dict
 
@@ -190,7 +203,23 @@ class MotorBuilder(SubsystemBuilderBase):
             arguments required by OpenMDAO for the variable.
         '''
 
-        initial_guess_dict = {}
+        initial_guess_dict = {
+            Dynamic.Mission.THROTTLE: {
+                'units': 'unitless',
+                'type': 'control',
+                'val': 0.5,
+            },
+            Aircraft.Engine.SCALE_FACTOR: {
+                'units': 'unitless',
+                'type': 'parameter',
+                'val': 1.0,
+            },
+            Mission.Motor.RPM: {
+                'units': 'rpm',
+                'type': 'parameter',
+                'val': 4000,  # based on our map
+            }
+        }
 
         return initial_guess_dict
 
@@ -227,4 +256,4 @@ class MotorBuilder(SubsystemBuilderBase):
             A list of variable names for the motor subsystem.
         '''
 
-        return [Mission.Motor.POWER_IN, Mission.Motor.POWER_OUT]
+        return [Mission.Motor.TORQUE, Mission.Motor.SHAFT_POWER, Mission.Motor.ELECTRIC_POWER]

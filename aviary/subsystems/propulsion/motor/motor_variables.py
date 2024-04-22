@@ -14,8 +14,7 @@ class Aircraft(AviaryAircraft):
     class Motor:
         COUNT = "aircraft:motor:count"
         MASS = "aircraft:motor:mass"
-        POWER_MAX = "aircraft:motor:power_max"
-        TYPE = "aircraft:motor:type"
+        TORQUE_MAX = "aircraft:motor:torque_max"
 
 # ---------------------------
 # Mission data hierarchy
@@ -26,15 +25,7 @@ class Mission(AviaryMission):
 
     class Motor:
         EFFICIENCY = "mission:motor:efficiency"
-        # ENERGY_CON = "aircraft:motor:energy_con"
-        ENERGY_REQUIRED = "aircraft:motor:energy_required"
-        GEAR_RATIO = 'mission:motor:gear_ratio'
-        POWER_CON = "mission:motor:power_con"
-        POWER_IN = "mission:motor:power_in"
-        POWER_OUT = "mission:motor:power_out"
+        ELECTRIC_POWER = "mission.motor.electric_power"
         RPM = "mission:motor:rpm"
+        SHAFT_POWER = "mission:motor:power_out"
         TORQUE = "mission:motor:torque"
-        VOLTAGE = "mission:motor:voltage"
-
-    # class Converter:
-    #     EFFICIENCY = "mission:converter:efficiency"

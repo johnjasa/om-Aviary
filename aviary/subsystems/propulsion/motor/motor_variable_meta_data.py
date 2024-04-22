@@ -1,7 +1,7 @@
 import numpy as np
 import openmdao.api as om
 import aviary.api as av
-from ttbw.motor.motor_variables import Aircraft, Mission
+from ttbw.motor.motor_variables import Aircraft, Mission, Dynamic
 
 
 ExtendedMetaData = av.CoreMetaData
@@ -26,20 +26,9 @@ av.add_meta_data(
 )
 
 av.add_meta_data(
-    Aircraft.Motor.POWER_MAX,
-    units="kW",
-    desc="Maximum motor power; used for computing motor mass",
-    default_value=100.0,
-    meta_data=ExtendedMetaData
-)
-
-av.add_meta_data(
-    Aircraft.Motor.TYPE,
-    units=None,
-    desc="""list of keywords to descirbe the motor; used to estimate weight.
-         See motor_weight.py for the list of valid keywords""",
-    default_value=["Axial"],
-    option=True,
+    Aircraft.Motor.TORQUE_MAX,
+    units="N*m",
+    desc="Max torque value that can be output from a single motor",
     meta_data=ExtendedMetaData
 )
 
@@ -53,50 +42,10 @@ av.add_meta_data(
     meta_data=ExtendedMetaData
 )
 
-# av.add_meta_data(
-#     Mission.Motor.ENERGY_CON,
-#     units="kW*h",
-#     desc="Total energy constraint: battery energy available - motor energy required >= 0",
-#     default_value=None,
-#     meta_data=ExtendedMetaData
-# )
-
 av.add_meta_data(
-    Mission.Motor.ENERGY_REQUIRED,
-    units="kW*h",
-    desc="Total motor energy required: integral of POWER_IN",
-    default_value=None,
-    meta_data=ExtendedMetaData
-)
-
-av.add_meta_data(
-    Mission.Motor.GEAR_RATIO,
-    units=None,
-    desc='gear ratio between engine and motor RPM',
-    default_value=1,
-    meta_data=ExtendedMetaData
-)
-
-av.add_meta_data(
-    Mission.Motor.POWER_CON,
+    Mission.Motor.ELECTRIC_POWER,
     units="kW",
-    desc="Power slack constraint: POWER_MAX >= max(POWER)",
-    default_value=None,
-    meta_data=ExtendedMetaData
-)
-
-av.add_meta_data(
-    Mission.Motor.POWER_IN,
-    units="kW",
-    desc="Power required to drive the motor",
-    default_value=None,
-    meta_data=ExtendedMetaData
-)
-
-av.add_meta_data(
-    Mission.Motor.POWER_OUT,
-    units="kW",
-    desc="Power output from the motor",
+    desc="Power used by all the motors combined",
     default_value=None,
     meta_data=ExtendedMetaData
 )
@@ -109,6 +58,16 @@ av.add_meta_data(
     meta_data=ExtendedMetaData
 )
 
+# TBD I think Jason originally wanted this to be Dynamic.Mission.SHAFT_POWER
+# I think these need to be Mission.Motor. values
+av.add_meta_data(
+    Mission.Motor.SHAFT_POWER,
+    units="kW",
+    desc="Power output from a single motor",
+    default_value=None,
+    meta_data=ExtendedMetaData
+)
+
 av.add_meta_data(
     Mission.Motor.TORQUE,
     units="N*m",
@@ -116,22 +75,3 @@ av.add_meta_data(
     default_value=None,
     meta_data=ExtendedMetaData
 )
-
-# av.add_meta_data(
-#     Mission.Motor.VOLTAGE,
-#     units="V",
-#     desc="Motor voltage",
-#     # *** This is meant to replace Mission.Battery.Voltage so it's not really motor voltage??
-#     default_value=None,
-#     meta_data=ExtendedMetaData
-# )
-
-# ##### DC CONVERTER MISSION VALUES #####
-
-# av.add_meta_data(
-#     Mission.Converter.EFFICIENCY,
-#     units=None,
-#     desc="DC voltage converter efficiency",
-#     default_value=None,
-#     meta_data=ExtendedMetaData
-# )
