@@ -1,9 +1,8 @@
 import openmdao.api as om
 
-from ttbw.motor.motor_variables import Mission, Aircraft, Dynamic
+from motor_variables import Mission, Aircraft, Dynamic
 from aviary.utils.aviary_values import AviaryValues
-from ttbw.motor.model.motor_weight import MotorWeight
-from ttbw.motor.model.motor_map import MotorMap
+from model.motor_map import MotorMap
 
 
 class MotorPreMission(om.Group):
@@ -28,7 +27,6 @@ class MotorPreMission(om.Group):
         # based on the non-dimensional scale factor chosen by the optimizer.
         # The max torque is then used in pre-mission to determine weight of the system.
         self.set_input_defaults(Dynamic.Mission.THROTTLE, 1.0, units='unitless')
-        self.set_input_defaults(Mission.Motor.RPM, 2000, units='rpm')
 
         # TBD I'm worried that the above code won't set these in pre-mission correctly
         self.add_subsystem('motor_map', MotorMap(num_nodes=1),

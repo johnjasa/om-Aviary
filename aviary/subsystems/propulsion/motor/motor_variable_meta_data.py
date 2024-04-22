@@ -1,7 +1,5 @@
-import numpy as np
-import openmdao.api as om
 import aviary.api as av
-from ttbw.motor.motor_variables import Aircraft, Mission, Dynamic
+from motor_variables import Aircraft, Dynamic, Mission
 
 
 ExtendedMetaData = av.CoreMetaData
@@ -26,6 +24,14 @@ av.add_meta_data(
 )
 
 av.add_meta_data(
+    Aircraft.Motor.RPM,
+    units="rpm",
+    desc="Motor RPM",
+    default_value=None,
+    meta_data=ExtendedMetaData
+)
+
+av.add_meta_data(
     Aircraft.Motor.TORQUE_MAX,
     units="N*m",
     desc="Max torque value that can be output from a single motor",
@@ -35,7 +41,7 @@ av.add_meta_data(
 ##### MOTOR MISSION VALUES #####
 
 av.add_meta_data(
-    Mission.Motor.EFFICIENCY,
+    Dynamic.Mission.Motor.EFFICIENCY,
     units=None,
     desc="Motor efficiency",
     default_value=None,
@@ -43,7 +49,7 @@ av.add_meta_data(
 )
 
 av.add_meta_data(
-    Mission.Motor.ELECTRIC_POWER,
+    Dynamic.Mission.Motor.ELECTRIC_POWER,
     units="kW",
     desc="Power used by all the motors combined",
     default_value=None,
@@ -51,17 +57,15 @@ av.add_meta_data(
 )
 
 av.add_meta_data(
-    Mission.Motor.RPM,
-    units="rpm",
-    desc="Motor RPM",
+    Mission.Motor.ELECTRIC_ENERGY,
+    units="kW*h",
+    desc="Energy used by all the motors combined throughout the whole phase/mission",
     default_value=None,
     meta_data=ExtendedMetaData
 )
 
-# TBD I think Jason originally wanted this to be Dynamic.Mission.SHAFT_POWER
-# I think these need to be Mission.Motor. values
 av.add_meta_data(
-    Mission.Motor.SHAFT_POWER,
+    Dynamic.Mission.Motor.SHAFT_POWER,
     units="kW",
     desc="Power output from a single motor",
     default_value=None,
@@ -69,9 +73,17 @@ av.add_meta_data(
 )
 
 av.add_meta_data(
-    Mission.Motor.TORQUE,
+    Dynamic.Mission.Motor.TORQUE,
     units="N*m",
     desc="Motor torque",
+    default_value=None,
+    meta_data=ExtendedMetaData
+)
+
+av.add_meta_data(
+    Dynamic.Mission.Motor.TORQUE_CON,
+    units="N*m",
+    desc="Motor torque constraint to ensure torque in mission is less than torque_max",
     default_value=None,
     meta_data=ExtendedMetaData
 )

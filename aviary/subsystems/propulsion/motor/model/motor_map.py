@@ -2,7 +2,7 @@ import numpy as np
 
 import openmdao.api as om
 
-from ttbw.motor.motor_variables import Dynamic, Aircraft, Mission
+from motor_variables import Dynamic, Aircraft, Mission
 
 
 class MotorMap(om.Group):

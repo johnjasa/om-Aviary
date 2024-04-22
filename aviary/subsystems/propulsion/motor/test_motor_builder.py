@@ -1,7 +1,7 @@
 import unittest
 from aviary.subsystems.test.subsystem_tester import TestSubsystemBuilderBase
-from ttbw.motor.motor_builder import MotorBuilder
-from ttbw.motor.motor_variables import Aircraft
+from motor_builder import MotorBuilder
+from motor_variables import Aircraft
 from aviary.utils.aviary_values import AviaryValues
 
 
