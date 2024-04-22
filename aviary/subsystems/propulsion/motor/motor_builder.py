@@ -166,7 +166,7 @@ class MotorBuilder(SubsystemBuilderBase):
                 'lower': 0.001,
                 'upper': None
             },
-            Mission.Motor.RPM: {
+            Aircraft.Motor.RPM: {
                 'units': 'rpm',
                 'lower': 0.1,
                 'upper': 20000
@@ -219,10 +219,10 @@ class MotorBuilder(SubsystemBuilderBase):
                 'type': 'parameter',
                 'val': 1.0,
             },
-            Mission.Motor.RPM: {
+            Aircraft.Motor.RPM: {
                 'units': 'rpm',
                 'type': 'parameter',
-                'val': 4000,  # based on our map
+                'val': 4000.0,  # based on our map
             },
         }
 
@@ -264,4 +264,4 @@ class MotorBuilder(SubsystemBuilderBase):
         return [Dynamic.Mission.Motor.TORQUE,
                 Dynamic.Mission.Motor.SHAFT_POWER,
                 Dynamic.Mission.Motor.ELECTRIC_POWER,
-                Dynamic.Mission.Motor.ELECTRIC_ENERGY]
+                Mission.Motor.ELECTRIC_ENERGY]

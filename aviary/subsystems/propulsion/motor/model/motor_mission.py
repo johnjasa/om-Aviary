@@ -22,32 +22,36 @@ class MotorMission(om.Group):
         num_motors = self.options["aviary_inputs"].get_val(Aircraft.Motor.COUNT)
 
         self.add_subsystem('motor_map', MotorMap(num_nodes=n),
-                           promote_inputs=[Dynamic.Mission.THROTTLE,
-                                           Aircraft.Engine.SCALE_FACTOR,
-                                           Mission.Motor.RPM],
-                           promote_outputs=[Dynamic.Mission.Motor.TORQUE,
-                                            Dynamic.Mission.Motor.EFFICIENCY])
+                           promotes_inputs=[Dynamic.Mission.THROTTLE,
+                                            Aircraft.Engine.SCALE_FACTOR,
+                                            Aircraft.Motor.RPM],
+                           promotes_outputs=[Dynamic.Mission.Motor.TORQUE,
+                                             Dynamic.Mission.Motor.EFFICIENCY])
 
         self.add_subsystem('power_comp',
                            om.ExecComp('P = T * pi * RPM / 30',
-                                       'P_elec = P / eff * num_motors',
                                        P={'val': np.ones(n), 'units': 'kW'},
                                        T={'val': np.ones(n), 'units': 'kN*m'},
-                                       RPM={'val': np.ones(n), 'units': 'rpm'},
+                                       RPM={'val': np.ones(n), 'units': 'rpm'}),
+                           promotes_inputs=[("T", Dynamic.Mission.Motor.TORQUE),
+                                            ("RPM", Aircraft.Motor.RPM)],
+                           promotes_outputs=[("P", Dynamic.Mission.Motor.SHAFT_POWER)])
+
+        self.add_subsystem('energy_comp',
+                           om.ExecComp('P_elec = P / eff * num_motors',
+                                       P={'val': np.ones(n), 'units': 'kW'},
                                        P_elec={'val': np.ones(n), 'units': 'kW'},
                                        eff={'val': np.ones(n), 'units': 'unitless'},
                                        num_motors={'val': num_motors, 'units': 'unitless'}),
-                           promote_inputs=[("T", Dynamic.Mission.Motor.TORQUE),
-                                           ("RPM", Mission.Motor.RPM),
-                                           ("eff", Dynamic.Mission.Motor.EFFICIENCY)],
-                           promote_outputs=[("P", Dynamic.Mission.Motor.SHAFT_POWER),
-                                            ("P_elec", Dynamic.Mission.Motor.ELECTRIC_POWER),])
+                           promotes_inputs=[("P", Dynamic.Mission.Motor.SHAFT_POWER),
+                                            ("eff", Dynamic.Mission.Motor.EFFICIENCY)],
+                           promotes_outputs=[("P_elec", Dynamic.Mission.Motor.ELECTRIC_POWER)])
 
         self.add_subsystem('torque_con',
                            om.ExecComp('torque_con = torque_max - torque_mission',
                                        torque_con={'val': np.ones(n), 'units': 'kN*m'},
                                        torque_max={'val': np.ones(n), 'units': 'kN*m'},
                                        torque_mission={'val': np.ones(n), 'units': 'kN*m'}),
-                           promote_inputs=[('torque_mission', Dynamic.Mission.Motor.TORQUE),
-                                           ('torque_max', Dynamic.Mission.Motor.TORQUE_MAX)],
-                           promote_outputs=[('torque_con', Dynamic.Mission.Motor.TORQUE_CON)])
+                           promotes_inputs=[('torque_mission', Dynamic.Mission.Motor.TORQUE),
+                                            ('torque_max', Aircraft.Motor.TORQUE_MAX)],
+                           promotes_outputs=[('torque_con', Dynamic.Mission.Motor.TORQUE_CON)])

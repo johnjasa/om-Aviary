@@ -46,13 +46,13 @@ class MotorMap(om.Group):
         motor = om.MetaModelStructuredComp(method="slinear",
                                            vec_size=n,
                                            extrapolate=True)
-        motor.add_input(Mission.Motor.RPM, val=np.ones(n),
+        motor.add_input(Aircraft.Motor.RPM, val=np.ones(n),
                         training_data=rpm_vals,
                         units="rpm")
         motor.add_input("T_unscaled", val=np.ones(n),  # unscaled torque
                         training_data=torque_vals,
                         units="N*m")
-        motor.add_output(Mission.Motor.EFFICIENCY, val=np.ones(n),
+        motor.add_output(Dynamic.Mission.Motor.EFFICIENCY, val=np.ones(n),
                          training_data=np.array([
                              # speed----     0    250    500    750   1000   1250   1500   1750   2000   2250   2500   2750   3000   3250
                              [0.500, 0.500, 0.500, 0.500, 0.500, 0.500, 0.500, 0.500,
@@ -90,7 +90,7 @@ class MotorMap(om.Group):
                              [0.500, 0.500, 0.590, 0.680, 0.738, 0.775, 0.803, 0.823,
                                  0.837, 0.845, 0.852, 0.840, 0.840, 0.840]  # 800
                          ]).T,
-                         units=None)
+                         units='unitless')
 
         self.add_subsystem('throttle_to_torque',
                            om.ExecComp('T_unscaled = T_max * throttle',
@@ -110,6 +110,6 @@ class MotorMap(om.Group):
                                        T={'val': np.ones(n), 'units': 'kN*m'},
                                        T_unscaled={'val': np.ones(n), 'units': 'kN*m'},
                                        scale_factor={'val': 1, 'units': 'unitless'}),
-                           promotes=[("T", Mission.Motor.TORQUE),
+                           promotes=[("T", Dynamic.Mission.Motor.TORQUE),
                                      "T_unscaled",
                                      ("scale_factor", Aircraft.Engine.SCALE_FACTOR)])

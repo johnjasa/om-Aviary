@@ -30,10 +30,10 @@ class MotorPreMission(om.Group):
 
         # TBD I'm worried that the above code won't set these in pre-mission correctly
         self.add_subsystem('motor_map', MotorMap(num_nodes=1),
-                           promote_inputs=[Aircraft.Engine.SCALE_FACTOR,
-                                           Dynamic.Mission.THROTTLE,
-                                           Mission.Motor.RPM],
-                           promote_outputs=[(Mission.Motor.TORQUE, Aircraft.Motor.TORQUE_MAX)])
+                           promotes_inputs=[Aircraft.Engine.SCALE_FACTOR,
+                                            Dynamic.Mission.THROTTLE,
+                                            Aircraft.Motor.RPM],
+                           promotes_outputs=[(Dynamic.Mission.Motor.TORQUE, Aircraft.Motor.TORQUE_MAX)])
 
         # Motor mass relationship based on continuous torque rating for aerospace motors (Figure 10)
         # Propulsion Scaling Methods in the Era of Electric Flight - Duffy et. al.
