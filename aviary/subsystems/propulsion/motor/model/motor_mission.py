@@ -3,8 +3,8 @@ import numpy as np
 import openmdao.api as om
 from aviary.utils.aviary_values import AviaryValues
 
-from motor_variables import Dynamic, Aircraft, Mission
-from model.motor_map import MotorMap
+from aviary.subsystems.propulsion.motor.motor_variables import Dynamic, Aircraft, Mission
+from aviary.subsystems.propulsion.motor.model.motor_map import MotorMap
 
 
 class MotorMission(om.Group):

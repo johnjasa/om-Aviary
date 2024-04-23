@@ -6,7 +6,7 @@ from aviary.subsystems.propulsion.engine_deck import EngineDeck
 from aviary.subsystems.propulsion.utils import EngineModelVariables
 from aviary.utils.named_values import NamedValues
 from aviary.utils.aviary_values import AviaryValues
-from aviary.variable_info.variables import Aircraft, Dynamic
+from aviary.subsystems.propulsion.motor.motor_variables import Dynamic, Aircraft, Mission
 from aviary.subsystems.propulsion.propeller_performance import PropellerPerformance
 from aviary.subsystems.propulsion.utils import UncorrectData
 from aviary.mission.gasp_based.flight_conditions import FlightConditions
@@ -104,12 +104,14 @@ class TurbopropModel(EngineModel):
         prop_model = self.propeller_model
         turboprop_group = om.Group()
 
+        input_rpm = False
         shp_model_mission = shp_model.build_mission(num_nodes, aviary_inputs, **kwargs)
         if shp_model_mission is not None:
             turboprop_group.add_subsystem(shp_model.name,
                                           subsys=shp_model_mission,
                                           promotes_inputs=['*'],
-                                          promotes_outputs=['*', (Dynamic.Mission.THRUST, 'turboshaft_thrust')])
+                                          promotes_outputs=['*', (Dynamic.Mission.Motor.SHAFT_POWER, Dynamic.Mission.SHAFT_POWER)])
+            input_rpm = True
 
         # ensure uncorrected shaft horsepower is avaliable
         # TODO also make sure corrected is avaliable
@@ -149,7 +151,8 @@ class TurbopropModel(EngineModel):
             # Hamilton Standard method
             turboprop_group.add_subsystem('propeller_model',
                                           PropellerPerformance(aviary_options=self.options,
-                                                               num_nodes=num_nodes),
+                                                               num_nodes=num_nodes,
+                                                               input_rpm=input_rpm),
                                           promotes_inputs=['*'],
                                           promotes_outputs=['*'])
 

@@ -2,7 +2,7 @@ import numpy as np
 
 import openmdao.api as om
 
-from motor_variables import Dynamic, Aircraft, Mission
+from aviary.subsystems.propulsion.motor.motor_variables import Dynamic, Aircraft, Mission
 
 
 class MotorMap(om.Group):
@@ -94,8 +94,8 @@ class MotorMap(om.Group):
 
         self.add_subsystem('throttle_to_torque',
                            om.ExecComp('T_unscaled = T_max * throttle',
-                                       T_unscaled={'val': np.ones(n), 'units': 'kN*m'},
-                                       T_max={'val': torque_vals[-1], 'units': 'kN*m'},
+                                       T_unscaled={'val': np.ones(n), 'units': 'N*m'},
+                                       T_max={'val': torque_vals[-1], 'units': 'N*m'},
                                        throttle={'val': np.ones(n), 'units': 'unitless'}),
                            promotes=["T_unscaled",
                                      ("throttle", Dynamic.Mission.THROTTLE)])
@@ -107,8 +107,8 @@ class MotorMap(om.Group):
         # Note: This allows the optimizer to optimize the motor size if desired
         self.add_subsystem('scale_motor_torque',
                            om.ExecComp('T = T_unscaled * scale_factor',
-                                       T={'val': np.ones(n), 'units': 'kN*m'},
-                                       T_unscaled={'val': np.ones(n), 'units': 'kN*m'},
+                                       T={'val': np.ones(n), 'units': 'N*m'},
+                                       T_unscaled={'val': np.ones(n), 'units': 'N*m'},
                                        scale_factor={'val': 1, 'units': 'unitless'}),
                            promotes=[("T", Dynamic.Mission.Motor.TORQUE),
                                      "T_unscaled",

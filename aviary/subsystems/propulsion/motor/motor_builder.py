@@ -1,8 +1,8 @@
 from aviary.subsystems.subsystem_builder_base import SubsystemBuilderBase
-from model.motor_premission import MotorPreMission
-from model.motor_mission import MotorMission
-from motor_variables import Aircraft, Mission, Dynamic
-from motor_variable_meta_data import ExtendedMetaData
+from aviary.subsystems.propulsion.motor.model.motor_premission import MotorPreMission
+from aviary.subsystems.propulsion.motor.model.motor_mission import MotorMission
+from aviary.subsystems.propulsion.motor.motor_variables import Aircraft, Mission, Dynamic
+from aviary.subsystems.propulsion.motor.motor_variable_meta_data import ExtendedMetaData
 
 
 class MotorBuilder(SubsystemBuilderBase):

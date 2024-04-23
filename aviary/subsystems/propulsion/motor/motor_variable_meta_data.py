@@ -1,5 +1,5 @@
 import aviary.api as av
-from motor_variables import Aircraft, Dynamic, Mission
+from aviary.subsystems.propulsion.motor.motor_variables import Aircraft, Dynamic, Mission
 
 
 ExtendedMetaData = av.CoreMetaData

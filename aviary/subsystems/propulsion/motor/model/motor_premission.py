@@ -1,8 +1,8 @@
 import openmdao.api as om
 
-from motor_variables import Mission, Aircraft, Dynamic
+from aviary.subsystems.propulsion.motor.motor_variables import Mission, Aircraft, Dynamic
 from aviary.utils.aviary_values import AviaryValues
-from model.motor_map import MotorMap
+from aviary.subsystems.propulsion.motor.model.motor_map import MotorMap
 
 
 class MotorPreMission(om.Group):
