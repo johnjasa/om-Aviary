@@ -62,14 +62,7 @@ class MotorBuilder(SubsystemBuilderBase):
             - any additional keyword arguments required by OpenMDAO for the state
               variable.
         '''
-        states_dict = {
-            Mission.Motor.ELECTRIC_ENERGY: {
-                'units': 'kW*h',
-                'rate_source': Dynamic.Mission.Motor.ELECTRIC_POWER,
-                'fix_initial': True,
-                'val': 0.0,
-            }
-        }
+        states_dict = {}
 
         return states_dict
 
