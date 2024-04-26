@@ -16,6 +16,7 @@ class MotorMission(om.Group):
             desc='collection of Aircraft/Mission specific options',
             default=None,
         )
+        self.name = 'motor_mission'
 
     def setup(self):
         n = self.options["num_nodes"]

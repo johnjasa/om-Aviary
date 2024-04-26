@@ -90,7 +90,9 @@ class MotorMap(om.Group):
                                      ("throttle", Dynamic.Mission.THROTTLE)])
 
         self.add_subsystem(name="motor_efficiency",
-                           subsys=motor, promotes=["*"])
+                           subsys=motor,
+                           promotes_inputs=[Aircraft.Motor.RPM, "T_unscaled"],
+                           promotes_outputs=[Dynamic.Mission.Motor.EFFICIENCY])
 
         # now that we know the efficiency, scale up the torque correctly for the engine size selected
         # Note: This allows the optimizer to optimize the motor size if desired

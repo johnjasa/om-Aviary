@@ -32,9 +32,8 @@ class TurbopropModel(EngineModel):
         Accepted keys are "pre-mission", "mission", and "post-mission". The values in the
         dict are the systems that will be added during the matching method call.
     propeller_model : dict (<empty>)
-        If not using the Hamilton Standard model, use this dictionary of OpenMDAO systems.
-        Accepted keys are "pre-mission", "mission", and "post-mission". The values in the
-        dict are the systems that will be added during the matching method call.
+        If not using the Hamilton Standard model, use this object of OpenMDAO systems.
+        If user wants to specify Hamilton standard then set this to None or `hamilton_standard`
 
     Methods
     -------
@@ -89,7 +88,7 @@ class TurbopropModel(EngineModel):
                                               subsys=shp_model_pre_mission,
                                               promotes=['*'])
 
-        if prop_model is not None:
+        if prop_model is not None and prop_model != 'hamilton_standard':
             prop_model_pre_mission = prop_model.build_pre_mission(
                 aviary_inputs, **kwargs)
             if prop_model_pre_mission is not None:
@@ -127,7 +126,8 @@ class TurbopropModel(EngineModel):
                                                                Dynamic.Mission.MACH],
                                               promotes_outputs=[('uncorrected_data', Dynamic.Mission.SHAFT_POWER)]),
 
-        if prop_model is not None:  # must assume user-provide propeller group has everything it needs
+        # must assume user-provide propeller group has everything it needs
+        if prop_model is not None and prop_model != 'hamilton_standard':
             prop_model_mission = prop_model.build_mission(
                 num_nodes, self.options, **kwargs)
             if prop_model_mission is not None:

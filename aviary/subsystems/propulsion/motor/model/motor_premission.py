@@ -16,6 +16,7 @@ class MotorPreMission(om.Group):
             desc="collection of Aircraft/Mission specific options",
             default=None,
         )
+        self.name = 'motor_premission'
 
     def setup(self):
 
@@ -33,7 +34,8 @@ class MotorPreMission(om.Group):
                            promotes_inputs=[Aircraft.Engine.SCALE_FACTOR,
                                             Dynamic.Mission.THROTTLE,
                                             Aircraft.Motor.RPM],
-                           promotes_outputs=[(Dynamic.Mission.Motor.TORQUE, Aircraft.Motor.TORQUE_MAX)])
+                           promotes_outputs=[(Dynamic.Mission.Motor.TORQUE,
+                                              Aircraft.Motor.TORQUE_MAX)])
 
         # Motor mass relationship based on continuous torque rating for aerospace motors (Figure 10)
         # Propulsion Scaling Methods in the Era of Electric Flight - Duffy et. al.
