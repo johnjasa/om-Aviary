@@ -22,6 +22,13 @@ class MotorMission(om.Group):
         n = self.options["num_nodes"]
         num_motors = self.options["aviary_inputs"].get_val(Aircraft.Motor.COUNT)
 
+        ivc = om.IndepVarComp()
+        ivc.add_output(Dynamic.Mission.FUEL_FLOW_RATE_NEGATIVE,
+                       val=np.zeros(n), units='kg/s')
+        ivc.add_output(Dynamic.Mission.ELECTRIC_POWER, val=np.zeros(n), units='kW')
+        ivc.add_output(Dynamic.Mission.NOX_RATE, val=np.zeros(n), units='kg/s')
+        self.add_subsystem('ivc', ivc, promotes=['*'])
+
         self.add_subsystem('motor_map', MotorMap(num_nodes=n),
                            promotes_inputs=[Dynamic.Mission.THROTTLE,
                                             Aircraft.Engine.SCALE_FACTOR,

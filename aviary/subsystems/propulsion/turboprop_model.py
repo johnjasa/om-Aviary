@@ -102,6 +102,7 @@ class TurbopropModel(EngineModel):
         shp_model = self.shaft_power_model
         prop_model = self.propeller_model
         turboprop_group = om.Group()
+        turboprop_max_group = om.Group()
 
         input_rpm = False
         shp_model_mission = shp_model.build_mission(num_nodes, aviary_inputs, **kwargs)
@@ -109,7 +110,23 @@ class TurbopropModel(EngineModel):
             turboprop_group.add_subsystem(shp_model.name,
                                           subsys=shp_model_mission,
                                           promotes_inputs=['*'],
-                                          promotes_outputs=['*', (Dynamic.Mission.Motor.SHAFT_POWER, Dynamic.Mission.SHAFT_POWER)])
+                                          promotes_outputs=['*',
+                                                            # (Dynamic.Mission.Motor.SHAFT_POWER, Dynamic.Mission.SHAFT_POWER),
+                                                            ])
+
+            # Add IVC just for max throttle
+            ivc = om.IndepVarComp()
+            ivc.add_output("throttle_max", val=np.ones(num_nodes), units='unitless')
+            turboprop_max_group.add_subsystem('ivc', ivc, promotes=['*'])
+
+            shp_model_mission_max = shp_model.build_mission(
+                num_nodes, aviary_inputs, **kwargs)
+            turboprop_max_group.add_subsystem(f"{shp_model.name}_max",
+                                              subsys=shp_model_mission_max,
+                                              promotes_inputs=['*',
+                                                               #    (Dynamic.Mission.THROTTLE, "throttle_max"),
+                                                               ],
+                                              promotes_outputs=[(Dynamic.Mission.Motor.SHAFT_POWER, "shaft_power_max")])
             input_rpm = True
 
         # ensure uncorrected shaft horsepower is avaliable
@@ -139,15 +156,26 @@ class TurbopropModel(EngineModel):
         else:  # use the Hamilton Standard model
             # calculate atmospheric properties
             # TODO these properties should always just be avaliable across Aviary
-            turboprop_group.add_subsystem('flight_conditions',
-                                          FlightConditions(num_nodes=num_nodes,
-                                                           input_speed_type=SpeedType.MACH),
-                                          promotes_inputs=['rho',
-                                                           Dynamic.Mission.SPEED_OF_SOUND,
-                                                           Dynamic.Mission.MACH],
-                                          promotes_outputs=[Dynamic.Mission.DYNAMIC_PRESSURE,
-                                                            'EAS',
-                                                            ('TAS', 'velocity')])
+            if not input_rpm:
+                turboprop_group.add_subsystem('flight_conditions',
+                                              FlightConditions(num_nodes=num_nodes,
+                                                               input_speed_type=SpeedType.MACH),
+                                              promotes_inputs=['rho',
+                                                               Dynamic.Mission.SPEED_OF_SOUND,
+                                                               Dynamic.Mission.MACH],
+                                              promotes_outputs=[Dynamic.Mission.DYNAMIC_PRESSURE,
+                                                                'EAS',
+                                                                ('TAS', 'velocity')])
+
+                turboprop_max_group.add_subsystem('flight_conditions',
+                                                  FlightConditions(num_nodes=num_nodes,
+                                                                   input_speed_type=SpeedType.MACH),
+                                                  promotes_inputs=['rho',
+                                                                   Dynamic.Mission.SPEED_OF_SOUND,
+                                                                   Dynamic.Mission.MACH],
+                                                  promotes_outputs=[Dynamic.Mission.DYNAMIC_PRESSURE,
+                                                                    'EAS',
+                                                                    ('TAS', 'velocity')])
             # Hamilton Standard method
             turboprop_group.add_subsystem('propeller_model',
                                           PropellerPerformance(aviary_options=self.options,
@@ -156,12 +184,27 @@ class TurbopropModel(EngineModel):
                                           promotes_inputs=['*'],
                                           promotes_outputs=['*'])
 
+            turboprop_max_group.add_subsystem('propeller_model_max',
+                                              PropellerPerformance(aviary_options=self.options,
+                                                                   num_nodes=num_nodes,
+                                                                   input_rpm=input_rpm),
+                                              promotes_inputs=[
+                                                  '*', (Dynamic.Mission.SHAFT_POWER, 'shaft_power_max')],
+                                              promotes_outputs=[('propeller_thrust', Dynamic.Mission.THRUST_MAX)])
+
         thrust_adder = om.ExecComp('turboprop_thrust=turboshaft_thrust+propeller_thrust',
                                    turboprop_thrust={'val': np.zeros(
                                        num_nodes), 'units': 'lbf'},
                                    turboshaft_thrust={'val': np.zeros(
                                        num_nodes), 'units': 'lbf'},
                                    propeller_thrust={'val': np.zeros(num_nodes), 'units': 'lbf'})
+
+        turboprop_group.add_subsystem('turboprop_max_group', turboprop_max_group, promotes_outputs=[
+                                      Dynamic.Mission.THRUST_MAX])
+        turboprop_max_group.set_input_defaults(
+            Dynamic.Mission.TEMPERATURE, 288.15*np.ones(num_nodes), units='K')
+        turboprop_max_group.set_input_defaults(
+            Dynamic.Mission.MACH, np.zeros(num_nodes), units='unitless')
 
         turboprop_group.add_subsystem('thrust_adder',
                                       subsys=thrust_adder,

@@ -42,7 +42,7 @@ class MotorPreMission(om.Group):
         # AIAA Propulsion and Energy Forum, July 9-11, 2018
         num_motors = self.options["aviary_inputs"].get_val(Aircraft.Motor.COUNT)
         self.add_subsystem('motor_mass',
-                           om.ExecComp('motor_mass = num_motors * (0.3151 * max_torque ^ 0.748)',
+                           om.ExecComp('motor_mass = num_motors * (0.3151 * max_torque ** 0.748)',
                                        motor_mass={'val': 1.0, 'units': 'kg'},
                                        num_motors={'val': num_motors,
                                                    'units': 'unitless'},
