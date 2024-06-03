@@ -1,12 +1,12 @@
 
-from matplotlib.colors import LogNorm
-import pandas as pd
-import seaborn as sns
 import dill
 import aviary.api as av
 from time import time
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+from matplotlib.colors import LogNorm
 
 phase_info = {
     "pre_mission": {"include_takeoff": False, "optimize_mass": True},
@@ -197,9 +197,11 @@ def make_bar_chart():
     fig, ax = plt.subplots(figsize=(10, 5))
 
     # Bars for the approx_totals
-    rects1 = ax.bar(x - width/2, approx_times, width, label='Approx Totals')
+    rects1 = ax.bar(x - width/2, approx_times, width,
+                    label='Approx Totals', color=sns.color_palette('deep')[0])
     # Bars for the analytic_totals
-    rects2 = ax.bar(x + width/2, analytic_times, width, label='Analytic Totals')
+    rects2 = ax.bar(x + width/2, analytic_times, width,
+                    label='Analytic Totals', color=sns.color_palette('deep')[2])
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
     ax.set_ylabel('Time (s)', rotation=0, labelpad=20)
@@ -232,7 +234,7 @@ def make_bar_chart():
     add_labels(rects2, 'Analytic')
 
     plt.tight_layout()
-    plt.show()
+    plt.savefig('timing_comparison.png')
 
 
 # Get the analytic and approximated derivatives for the throttle constraint and engine thrust
@@ -254,7 +256,7 @@ for key_pair in derivs_dict['analytic_totals']['beginning']:
             f'Analytic: {analytic}, Approximated: {approx}, Relative Error: {relative_error}')
 
 
-# make_bar_chart()
+make_bar_chart()
 
 
 # Data from your example
@@ -343,6 +345,9 @@ df['relative_error'] = df['relative_error'] * 100
 # Pivot the DataFrame to create a matrix
 matrix = df.pivot(index='of', columns='wrt', values='relative_error')
 
+# Increase font size
+plt.rcParams.update({'font.size': 14})
+
 # Plot the heatmap
 plt.figure(figsize=(14, 10))
 ax = sns.heatmap(matrix, cmap='viridis', norm=LogNorm(
@@ -362,9 +367,8 @@ for i in range(matrix.shape[0]):
                 ax.text(j + 0.5, i + 0.5, f'{value:.2f}%',
                         ha='center', va='center', color=color)
             else:
-                ax.text(j + 0.5, i + 0.5, f'{value:.5f}%',
+                ax.text(j + 0.5, i + 0.5, f'{value:.4f}%',
                         ha='center', va='center', color=color)
-
 
 # Customize the plot
 plt.title('Percentage Error Heatmap of Derivatives')
